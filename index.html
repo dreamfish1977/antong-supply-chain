@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <title>安通供应链</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body, html {
+        font-family: "Microsoft YaHei", "思源黑体", "Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", Helvetica, Arial, "sans-serif";
+        background-color: #f9fafb;
+      }
+      
+      /* 玻璃拟态效果优化 */
+      .backdrop-blur-md {
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      
+      /* 平滑滚动 */
+      html {
+        scroll-behavior: smooth;
+      }
+      
+      /* 确保背景图在移动设备上也能正常显示 */
+      @media (max-width: 768px) {
+        section[style*="background-image"] {
+          background-attachment: scroll !important;
+        }
+      }
+      
+    </style>
+  </head>
+  <body class="bg-gray-50 text-gray-900" style="background-color: #f9fafb;">
+    <!-- 导航栏 -->
+    <nav class="flex items-center justify-between px-8 py-5 bg-white shadow-md border-b border-gray-200">
+      <div class="text-2xl font-bold text-orange-500 select-none" style="font-family:inherit;">
+        安通供应链
+      </div>
+      <ul class="flex space-x-8 text-base font-medium">
+        <li><a href="#" class="text-gray-700 hover:text-orange-500 transition">首页</a></li>
+        <li><a href="#features" class="text-gray-700 hover:text-orange-500 transition">核心优势</a></li>
+        <li><a href="#solutions" class="text-gray-700 hover:text-orange-500 transition">解决方案</a></li>
+        <li><a href="#cases" class="text-gray-700 hover:text-orange-500 transition">客户案例</a></li>
+        <li><a href="#about" class="text-gray-700 hover:text-orange-500 transition">关于我们</a></li>
+      </ul>
+    </nav>
+
+    <!-- 首屏（Hero Section）-->
+    <section class="relative flex flex-col items-center justify-center text-center py-24 px-4 min-h-screen overflow-hidden" style="font-family:inherit;">
+      <!-- 背景图层 -->
+      <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" style="background-image: url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070&auto=format&fit=crop'); background-attachment: fixed;"></div>
+      <!-- 深色遮罩层（75%不透明度） -->
+      <div class="absolute inset-0 bg-slate-900 bg-opacity-75"></div>
+      <!-- 内容层 -->
+      <div class="relative z-10">
+        <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white mb-6 leading-tight" style="font-family:inherit;">
+        精益供应链，智能新未来
+      </h1>
+        <p class="text-lg md:text-2xl text-white mb-10 max-w-2xl" style="font-family:inherit;">
+          <span class="block mb-2">安全高效 · 通达便捷</span>
+          <span class="block pl-8 md:pl-12">—— 为高端制造企业提供一体化物流解决方案</span>
+        </p>
+      <div class="flex flex-col sm:flex-row gap-4">
+          <a href="dashboard.html" class="inline-block bg-orange-500 text-white text-base font-semibold px-8 py-3 rounded-xl shadow-lg hover:bg-orange-600 transition hover:shadow-orange-500/50 hover:scale-105"
+             style="font-family:inherit; box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.5);">
+          客户/员工系统登录
+        </a>
+          <a href="#solutions" class="inline-block bg-transparent border-2 border-white text-white text-base font-semibold px-8 py-3 rounded-xl hover:bg-white hover:text-slate-900 transition hover:scale-105"
+           style="font-family:inherit;">
+          了解解决方案
+        </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 核心优势 Features -->
+    <section id="features" class="py-20" style="font-family:inherit; background-color: #ffffff;">
+      <div class="max-w-5xl mx-auto px-4">
+        <h2 class="text-3xl font-bold text-gray-900 mb-10 text-center" style="font-family:inherit;">核心优势</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div class="flex flex-col items-center bg-white rounded-xl p-6 border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition">
+            <div class="bg-orange-50 rounded-full p-4 mb-4 border border-orange-200">
+              <!-- Icon 可自选或替换 -->
+              <svg class="w-8 h-8 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 4a2 2 0 012 2v1h3a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h3V6a2 2 0 012-2z"/></svg>
+            </div>
+            <div class="text-lg font-semibold mb-2 text-gray-900">专业化团队</div>
+            <div class="text-gray-600 text-sm text-center">经验丰富、技术领先的专业运营团队，保障卓越服务质量。</div>
+          </div>
+          <div class="flex flex-col items-center bg-white rounded-xl p-6 border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition">
+            <div class="bg-orange-50 rounded-full p-4 mb-4 border border-orange-200">
+              <svg class="w-8 h-8 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4h12v2H4V4zm0 4h8v2H4V8zm0 4h12v2H4v-2zm0 4h8v2H4v-2z"/></svg>
+            </div>
+            <div class="text-lg font-semibold mb-2 text-gray-900">定制化服务</div>
+            <div class="text-gray-600 text-sm text-center">根据不同行业及企业需求，量身打造专属物流解决方案。</div>
+          </div>
+          <div class="flex flex-col items-center bg-white rounded-xl p-6 border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition">
+            <div class="bg-orange-50 rounded-full p-4 mb-4 border border-orange-200">
+              <svg class="w-8 h-8 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 9a3 3 0 016 0v2a3 3 0 11-6 0V9z"/></svg>
+            </div>
+            <div class="text-lg font-semibold mb-2 text-gray-900">持续化改进</div>
+            <div class="text-gray-600 text-sm text-center">不断优化业务流程，实现流程标准化与创新升级。</div>
+          </div>
+          <div class="flex flex-col items-center bg-white rounded-xl p-6 border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition">
+            <div class="bg-orange-50 rounded-full p-4 mb-4 border border-orange-200">
+              <svg class="w-8 h-8 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12z"/></svg>
+            </div>
+            <div class="text-lg font-semibold mb-2 text-gray-900">价值化交付</div>
+            <div class="text-gray-600 text-sm text-center">以客户为中心，创造可衡量的供应链管理价值。</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 核心解决方案 Solutions -->
+    <section id="solutions" class="py-20" style="font-family:inherit; background-color: #f9fafb;">
+      <div class="max-w-6xl mx-auto px-4">
+        <h2 class="text-3xl font-bold text-gray-900 mb-12 text-center" style="font-family:inherit;">核心解决方案</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <!-- 卡片1：智能仓储服务 -->
+          <div class="bg-white rounded-xl p-8 border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition hover:transform hover:scale-105">
+            <div class="bg-orange-50 rounded-lg p-4 mb-6 border border-orange-200 inline-block">
+              <svg class="w-10 h-10 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-4" style="font-family:inherit;">智能仓储服务</h3>
+            <p class="text-gray-600 leading-relaxed">垂直升降货柜与旋转货柜，空间利用率提升60%，库存准确率100%</p>
+          </div>
+          <!-- 卡片2：JIT 准时配送 -->
+          <div class="bg-white rounded-xl p-8 border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition hover:transform hover:scale-105">
+            <div class="bg-orange-50 rounded-lg p-4 mb-6 border border-orange-200 inline-block">
+              <svg class="w-10 h-10 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-4" style="font-family:inherit;">JIT 准时配送</h3>
+            <p class="text-gray-600 leading-relaxed">线边物流无缝衔接，门到门短驳，精确匹配生产节拍</p>
+          </div>
+          <!-- 卡片3：定制包装方案 -->
+          <div class="bg-white rounded-xl p-8 border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition hover:transform hover:scale-105">
+            <div class="bg-orange-50 rounded-lg p-4 mb-6 border border-orange-200 inline-block">
+              <svg class="w-10 h-10 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7h-4m0 0c0-1.657-1.343-3-3-3s-3 1.343-3 3m6 0v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7m6 0c0-1.657-1.343-3-3-3S4 5.343 4 7m0 0H2"/>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-4" style="font-family:inherit;">定制包装方案</h3>
+            <p class="text-gray-600 leading-relaxed">木质/纸质/吸塑多样化材质，降低货损，绿色环保</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 硬核科技展示 Technology -->
+    <section id="technology" class="py-20" style="font-family:inherit; background-color: #ffffff;">
+      <div class="max-w-6xl mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <!-- 左侧：图片占位 -->
+          <div class="order-2 md:order-1">
+            <div class="bg-gray-100 rounded-xl p-16 border border-gray-200 flex items-center justify-center shadow-md" style="min-height: 400px;">
+              <p class="text-gray-500 text-lg text-center">自动化设备演示图</p>
+            </div>
+          </div>
+          <!-- 右侧：文字内容 -->
+          <div class="order-1 md:order-2">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6" style="font-family:inherit;">数字化管理与自动化设备</h2>
+            <p class="text-gray-600 leading-relaxed text-lg mb-6">
+              引入 Hanel 自动化货柜与 Pick-to-Light 按灯拣选系统，结合自研 WMS 系统，实现物料零差错流转。
+            </p>
+            <div class="space-y-4">
+              <div class="flex items-start">
+                <div class="bg-orange-50 rounded-lg p-2 mr-4 border border-orange-200">
+                  <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="text-gray-900 font-semibold mb-1">Hanel 自动化货柜</h4>
+                  <p class="text-gray-600 text-sm">高效垂直存储解决方案</p>
+                </div>
+              </div>
+              <div class="flex items-start">
+                <div class="bg-orange-50 rounded-lg p-2 mr-4 border border-orange-200">
+                  <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="text-gray-900 font-semibold mb-1">Pick-to-Light 按灯拣选</h4>
+                  <p class="text-gray-600 text-sm">智能拣选系统，提升效率</p>
+                </div>
+              </div>
+              <div class="flex items-start">
+                <div class="bg-orange-50 rounded-lg p-2 mr-4 border border-orange-200">
+                  <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="text-gray-900 font-semibold mb-1">自研 WMS 系统</h4>
+                  <p class="text-gray-600 text-sm">物料零差错流转管理</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 信任背书 Clients -->
+    <section id="clients" class="py-20" style="font-family:inherit; background-color: #f9fafb;">
+      <div class="max-w-6xl mx-auto px-4">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4 text-center" style="font-family:inherit;">服务于全球 500 强及行业领军企业</h2>
+        <p class="text-gray-600 text-center mb-12">合作伙伴遍布全国各地</p>
+        <!-- 客户Logo占位方块 -->
+        <div class="flex flex-wrap justify-center items-center gap-6 mb-8">
+          <div class="bg-white rounded-lg w-32 h-20 flex items-center justify-center border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition">
+            <span class="text-gray-700 text-xs text-center px-2 font-medium">GE能源</span>
+          </div>
+          <div class="bg-white rounded-lg w-32 h-20 flex items-center justify-center border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition">
+            <span class="text-gray-700 text-xs text-center px-2 font-medium">拓荆科技</span>
+          </div>
+          <div class="bg-white rounded-lg w-32 h-20 flex items-center justify-center border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition">
+            <span class="text-gray-700 text-xs text-center px-2 font-medium">富创精密</span>
+          </div>
+          <div class="bg-white rounded-lg w-32 h-20 flex items-center justify-center border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition">
+            <span class="text-gray-700 text-xs text-center px-2 font-medium">Bossard</span>
+          </div>
+          <div class="bg-white rounded-lg w-32 h-20 flex items-center justify-center border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition">
+            <span class="text-gray-700 text-xs text-center px-2 font-medium">先导精密</span>
+          </div>
+          <div class="bg-white rounded-lg w-32 h-20 flex items-center justify-center border border-gray-200 shadow-md hover:border-orange-500 hover:shadow-lg transition">
+            <span class="text-gray-700 text-xs text-center px-2 font-medium">大和江东</span>
+          </div>
+        </div>
+        <!-- 客户名称列表 -->
+        <div class="text-center">
+          <p class="text-gray-600 text-sm">GE能源、拓荆科技、富创精密、Bossard、先导精密、大和江东新材料等</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="text-center py-8 text-gray-600 text-sm" style="font-family:inherit; background-color: #ffffff; border-top: 1px solid #e5e7eb;">
+      &copy; <span id="year"></span> 安通供应链. 保留所有权利.
+    </footer>
+    <script>
+      document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>
