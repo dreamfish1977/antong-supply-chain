@@ -383,12 +383,9 @@
                     placeholder="🔍 搜索供应商名称..."
                     class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm"
                   />
-                  <button
-                    @click="openNewReceivingModal"
-                    class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium"
-                  >
-                    + 登记实物
-                  </button>
+                  <div class="text-xs text-gray-500 px-2">
+                    💡 数据来源：到货登记模块
+                  </div>
                   <button
                     @click="exportSupplierReceivingToExcel"
                     class="px-4 py-2 bg-white border border-green-600 text-green-600 hover:bg-green-50 rounded-lg text-sm font-medium"
@@ -428,11 +425,11 @@
                 >
                   <div class="flex flex-col md:flex-row gap-6 items-center">
                     <div class="flex-1 w-full">
-                      <h3 class="text-lg font-bold text-gray-900">{{ task.supplier_cn || '未知供应商' }}</h3>
+                      <h3 class="text-lg font-bold text-gray-900">{{ task.supplier_cn || task.供应商名称 || '未知供应商' }}</h3>
                       <div v-if="task.supplier_en" class="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded mt-1 inline-block">{{ task.supplier_en }}</div>
                       <div class="mt-2 flex items-center gap-4 text-sm text-gray-600">
                         <span class="flex items-center gap-1 bg-orange-50 text-orange-700 px-2 py-1 rounded border border-orange-100">
-                          📦 实物: <strong>{{ task.physical_qty || 0 }}</strong> {{ task.unit || '件' }}
+                          📦 实物: <strong>{{ task.physical_qty || task.实物数量 || 0 }}</strong> {{ task.unit || '件' }}
                         </span>
                         <span class="text-gray-300">|</span>
                         <span>📅 {{ task.到货日期 || task.date || '--' }}</span>
@@ -441,27 +438,78 @@
                     <div class="flex-1 w-full">
                       <div class="flex justify-between items-end mb-2">
                         <span class="text-sm font-medium text-gray-500">系统数据核对</span>
-                        <span v-if="task.system_lines > 0" class="text-sm font-bold text-blue-600">
-                          已匹配: {{ task.system_lines }} 条
-                        </span>
-                        <span v-else class="text-xs text-red-400 bg-red-50 px-2 py-1 rounded">
-                          ⏳ 等待报表上传...
-                        </span>
+                        <!-- 未结案：显示累计数 -->
+                        <template v-if="!task.is_closed">
+                          <span v-if="(task.system_data && task.system_data.total > 0) || (task.system_lines && task.system_lines > 0)" class="text-sm font-bold text-blue-600">
+                            当前累计系统条数：{{ (task.system_data && task.system_data.total) || task.system_lines || 0 }} 条
+                          </span>
+                          <span v-else class="text-xs text-red-400 bg-red-50 px-2 py-1 rounded">
+                            ⏳ 等待系统数据导入...
+                          </span>
+                        </template>
+                        <!-- 已结案：显示KPI分布 -->
+                        <template v-else-if="task.is_closed && task.kpi">
+                          <div class="flex items-center gap-2 text-xs">
+                            <span class="px-2 py-1 rounded font-bold" :class="task.kpi.nPercent > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'">
+                              N: {{ task.kpi.nPercent }}%
+                            </span>
+                            <span class="px-2 py-1 rounded font-bold" :class="task.kpi.nPlus1Percent > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-400'">
+                              N+1: {{ task.kpi.nPlus1Percent }}%
+                            </span>
+                            <span class="px-2 py-1 rounded font-bold" :class="task.kpi.overtimePercent > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-400'">
+                              超时: {{ task.kpi.overtimePercent }}%
+                            </span>
+                          </div>
+                        </template>
                       </div>
-                      <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                      <!-- 未结案：显示进度条 -->
+                      <div v-if="!task.is_closed" class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
                         <div 
                           class="h-full rounded-full transition-all duration-1000"
-                          :class="task.system_lines > 0 ? 'bg-blue-500' : 'bg-gray-300'"
-                          :style="{ width: task.system_lines > 0 ? '100%' : '0%' }"
+                          :class="((task.system_data && task.system_data.total > 0) || (task.system_lines && task.system_lines > 0)) ? 'bg-blue-500' : 'bg-gray-300'"
+                          :style="{ width: ((task.system_data && task.system_data.total > 0) || (task.system_lines && task.system_lines > 0)) ? '100%' : '0%' }"
+                        ></div>
+                      </div>
+                      <!-- 已结案：显示KPI分布条 -->
+                      <div v-else-if="task.is_closed && task.kpi" class="w-full flex gap-1 h-2 overflow-hidden rounded-full">
+                        <div 
+                          v-if="task.kpi.nPercent > 0"
+                          class="bg-green-500 transition-all duration-1000"
+                          :style="{ width: task.kpi.nPercent + '%' }"
+                          :title="'N: ' + task.kpi.n + '条'"
+                        ></div>
+                        <div 
+                          v-if="task.kpi.nPlus1Percent > 0"
+                          class="bg-yellow-500 transition-all duration-1000"
+                          :style="{ width: task.kpi.nPlus1Percent + '%' }"
+                          :title="'N+1: ' + task.kpi.nPlus1 + '条'"
+                        ></div>
+                        <div 
+                          v-if="task.kpi.overtimePercent > 0"
+                          class="bg-red-500 transition-all duration-1000"
+                          :style="{ width: task.kpi.overtimePercent + '%' }"
+                          :title="'超时: ' + task.kpi.overtime + '条'"
                         ></div>
                       </div>
                     </div>
                     <div class="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2">
+                      <!-- 结案按钮（仅未结案时显示） -->
+                      <button
+                        v-if="!task.is_closed"
+                        @click="closeReceivingTask(task)"
+                        class="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        🏁 结案
+                      </button>
+                      <!-- 状态显示 -->
                       <div v-if="task.status === '超时' || task.is_overdue" class="text-right">
                         <div class="text-red-600 font-bold">已超时</div>
                         <div class="text-xs text-red-400">SLA 48h</div>
                       </div>
-                      <div v-else-if="task.system_lines > 0" class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-bold">
+                      <div v-else-if="task.is_closed" class="px-3 py-1 bg-gray-200 text-gray-600 rounded-full text-xs font-bold">
+                        已结案
+                      </div>
+                      <div v-else-if="(task.system_data && task.system_data.total > 0) || (task.system_lines && task.system_lines > 0)" class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-bold">
                         正常进行中
                       </div>
                       <div v-else class="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-xs">
@@ -3285,19 +3333,59 @@
           return this.generatePrintPages(workOrder);
         },
 
+        // 供应商收货监控：从 arrivalLog 转换的监控列表
+        monitoringList() {
+          // 从 arrivalLog 读取所有记录，转换为监控卡片格式
+          return (this.arrivalLog || []).map(arrival => {
+            // 组合日期和时间作为到货日期
+            const arrivalDate = arrival.日期 || '';
+            const arrivalTime = arrival.时间 || '';
+            const fullDate = arrivalDate && arrivalTime ? `${arrivalDate} ${arrivalTime}` : arrivalDate || arrivalTime;
+            
+            return {
+              // 基础字段（来自到货登记）
+              supplier_cn: arrival.供应商名称 || '',
+              supplier_en: '', // 可能通过匹配获得
+              到货日期: fullDate,
+              date: fullDate,
+              实物数量: arrival.实物数量 || 0,
+              physical_qty: arrival.实物数量 || 0,
+              unit: arrival.单位 || '件',
+              送货单号: arrival.送货单号 || '',
+              备注: arrival.备注 || '',
+              
+              // 监控模块专用字段
+              system_data: arrival.system_data || {
+                total: 0,
+                logs: []
+              },
+              is_closed: arrival.is_closed || false,
+              kpi: arrival.kpi || null,
+              
+              // 兼容字段
+              system_lines: arrival.system_data ? arrival.system_data.total : (arrival.system_lines || 0),
+              总行数: arrival.system_data ? arrival.system_data.total : (arrival.system_lines || 0),
+              
+              // 保留原始 arrivalLog 的索引，用于回填数据
+              _arrivalIndex: this.arrivalLog.indexOf(arrival)
+            };
+          });
+        },
+
         // 供应商收货监控：过滤后的任务列表
         filteredReceivingTasks() {
           const kw = (this.receivingSearchKeyword || '').trim().toLowerCase();
-          return (this.receivingTasks || []).filter(task => {
+          return (this.monitoringList || []).filter(task => {
             // 状态标签过滤
             if (this.activeReceivingTab === 'ongoing') {
-              const isBacklog = String(task.当前状态 || '').includes('有积压') || String(task.当前状态 || '').includes('⚠️');
-              const isNormalOngoing = String(task.当前状态 || '').includes('正常') && (task.data_source === 'synced' && task.总行数 > 0);
-              if (!isBacklog && !isNormalOngoing) return false;
+              // 进行中：未结案且有数据，或已结案
+              if (task.is_closed) return true;
+              if (task.system_data && task.system_data.total > 0) return true;
+              return false;
             }
             // 搜索过滤
             if (!kw) return true;
-            const name = String(task.供应商名称 || task.supplier_cn || '').toLowerCase();
+            const name = String(task.supplier_cn || '').toLowerCase();
             return name.includes(kw);
           });
         },
@@ -4448,15 +4536,45 @@
           this.planData.forEach(plan => {
             const key = `${plan.work_order}|${plan.op}`;
             if (!matchedMap[key]) {
+              // 第一次出现，直接创建
               matchedMap[key] = {
                 ...plan,
                 materials: []
               };
+            } else {
+              // 如果已存在，优先保留有到达时间的记录
+              const existingArrivalTime = matchedMap[key].arrival_time || matchedMap[key]['到达时间'] || '';
+              const newArrivalTime = plan.arrival_time || plan['到达时间'] || '';
+              
+              // 如果现有记录没有到达时间，但新记录有，则更新为有时间的记录
+              if ((!existingArrivalTime || existingArrivalTime.trim() === '') && 
+                  newArrivalTime && newArrivalTime.trim() !== '') {
+                matchedMap[key] = {
+                  ...plan,
+                  materials: matchedMap[key].materials // 保留已有的物料
+                };
+              }
+              // 如果现有记录有到达时间，但新记录没有，则保持现有记录不变
+              // 如果两者都有或都没有，保持现有记录不变（优先保留第一次）
             }
           });
 
           // 匹配 BOM 数据
+          // 统计空器具物料数量（用于预警）
+          let emptyToolCount = 0;
+          
           this.bomData.forEach(bom => {
+            // 1. 过滤 AW：如果 tool_type === 'AW'（不区分大小写），跳过该物料
+            const toolType = String(bom.tool_type || bom['tool_type'] || '').trim();
+            if (toolType.toUpperCase() === 'AW') {
+              return; // 跳过 AW 物料，不加入配料单
+            }
+            
+            // 2. 统计空器具：检查 tool_type 是否为空（undefined, null, 或空字符串）
+            if (!toolType || toolType === '') {
+              emptyToolCount++;
+            }
+            
             const key = `${bom.Job}|${bom.OP}`;
             if (matchedMap[key]) {
               matchedMap[key].materials.push(bom);
@@ -4500,6 +4618,11 @@
             }
             return workOrder;
           });
+          
+          // 3. 空器具预警：匹配结束后，如果有1个或以上物料缺失器具信息，弹出警告
+          if (emptyToolCount >= 1) {
+            alert(`⚠️ 警告：检测到 ${emptyToolCount} 条物料缺少"器具"信息！请检查原始 BOM 表是否漏填。`);
+          }
         },
 
         // 选择工单
@@ -4894,17 +5017,55 @@
             }
           });
 
-          // 统计流水表行数（按供应商分组）
-          const supplierCountMap = {};
+          // 解析GE数据，按日期和供应商分组统计
+          const geDataByDateAndSupplier = {}; // { '2025-12-28|供应商名': count }
+          
           this.transactionLogData.forEach(row => {
             const item = String(row['物料号'] || row['Item'] || '').trim();
-            const supplier = this.itemToSupplierMap[item];
+            const supplierEn = this.itemToSupplierMap[item];
             
-            if (supplier) {
-              if (!supplierCountMap[supplier]) {
-                supplierCountMap[supplier] = 0;
+            if (supplierEn) {
+              // 查字典：将英文名转为中文
+              const supplierCn = this.supplierMap[supplierEn] || supplierEn;
+              
+              // 解析日期（支持多种格式）
+              let geDate = '';
+              const dateRaw = row['日期'] || row['Date'] || row['交易日期'] || row['Transaction Date'] || '';
+              if (dateRaw) {
+                if (dateRaw instanceof Date) {
+                  geDate = dateRaw.toISOString().split('T')[0];
+                } else if (typeof dateRaw === 'string') {
+                  // 尝试解析日期字符串
+                  const dateMatch = dateRaw.match(/(\d{4}[-/]\d{1,2}[-/]\d{1,2})/);
+                  if (dateMatch) {
+                    geDate = dateMatch[1].replace(/\//g, '-');
+                    // 确保格式为 YYYY-MM-DD
+                    const parts = geDate.split('-');
+                    if (parts.length === 3) {
+                      geDate = `${parts[0]}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`;
+                    }
+                  }
+                } else if (typeof dateRaw === 'number') {
+                  // Excel日期数字
+                  const excelDate = this.formatExcelDate(dateRaw);
+                  geDate = excelDate;
+                }
               }
-              supplierCountMap[supplier]++;
+              
+              if (geDate) {
+                const key = `${geDate}|${supplierCn}`;
+                if (!geDataByDateAndSupplier[key]) {
+                  geDataByDateAndSupplier[key] = 0;
+                }
+                geDataByDateAndSupplier[key]++;
+              } else {
+                // 如果没有日期，按供应商统计
+                const key = `no_date|${supplierCn}`;
+                if (!geDataByDateAndSupplier[key]) {
+                  geDataByDateAndSupplier[key] = 0;
+                }
+                geDataByDateAndSupplier[key]++;
+              }
             } else {
               // 未知供应商，加入队列
               if (!this.unknownSuppliersQueue.includes(item)) {
@@ -4913,20 +5074,99 @@
             }
           });
 
-          // 数据回填：将统计结果填入 receivingTasks
-          this.receivingTasks.forEach(task => {
-            const supplierEn = task.supplier_en || '';
-            const supplierCn = task.supplier_cn || '';
-            const count = supplierCountMap[supplierEn] || supplierCountMap[supplierCn] || 0;
-            task.system_lines = count;
-            task.总行数 = count;
+          // 数据回填：累加数据到 arrivalLog（而不是 receivingTasks）
+          this.arrivalLog.forEach((arrival, index) => {
+            // 如果已结案，跳过更新（不覆盖已结案的数据）
+            if (arrival.is_closed) {
+              return;
+            }
+            
+            const supplierCn = arrival.供应商名称 || '';
+            const arrivalDate = arrival.日期 || '';
+            const arrivalTime = arrival.时间 || '';
+            
+            // 初始化 system_data（如果不存在）
+            if (!arrival.system_data) {
+              arrival.system_data = {
+                total: 0,
+                logs: []
+              };
+            }
+            if (arrival.is_closed === undefined) {
+              arrival.is_closed = false;
+            }
+            
+            // 解析到货日期（组合日期和时间）
+            let arrivalDateObj = null;
+            if (arrivalDate) {
+              // 尝试解析日期，支持多种格式
+              let dateStr = arrivalDate;
+              if (dateStr.includes(' ')) {
+                dateStr = dateStr.split(' ')[0]; // 取日期部分
+              }
+              // 处理 YYYY-MM-DD 格式
+              if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                arrivalDateObj = new Date(dateStr);
+              } else if (dateStr.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+                arrivalDateObj = new Date(dateStr.replace(/\//g, '-'));
+              }
+            }
+            
+            // 匹配到货日期及其后3天内的GE数据
+            const matchedLogs = [];
+            Object.keys(geDataByDateAndSupplier).forEach(key => {
+              const [geDate, geSupplier] = key.split('|');
+              
+              // 供应商匹配
+              if (geSupplier !== supplierCn) return;
+              
+              // 日期匹配：到货日期及其后3天
+              if (geDate === 'no_date') {
+                // 没有日期的数据，直接累加
+                matchedLogs.push({ date: '未知日期', count: geDataByDateAndSupplier[key] });
+              } else if (arrivalDateObj) {
+                const geDateObj = new Date(geDate);
+                const diffDays = Math.floor((geDateObj - arrivalDateObj) / (1000 * 60 * 60 * 24));
+                
+                if (diffDays >= 0 && diffDays <= 3) {
+                  // 检查是否已存在该日期的log
+                  const existingLogIndex = arrival.system_data.logs.findIndex(log => log.date === geDate);
+                  if (existingLogIndex >= 0) {
+                    // 累加
+                    arrival.system_data.logs[existingLogIndex].count += geDataByDateAndSupplier[key];
+                  } else {
+                    // 新增
+                    matchedLogs.push({ date: geDate, count: geDataByDateAndSupplier[key] });
+                  }
+                }
+              }
+            });
+            
+            // 添加新的logs
+            matchedLogs.forEach(log => {
+              arrival.system_data.logs.push(log);
+            });
+            
+            // 重新计算total
+            arrival.system_data.total = arrival.system_data.logs.reduce((sum, log) => sum + log.count, 0);
+            
+            // 兼容旧字段（向后兼容）
+            arrival.system_lines = arrival.system_data.total;
           });
+          
+          // 保存更新后的 arrivalLog 到 localStorage
+          try {
+            localStorage.setItem('arrivalLogData', JSON.stringify(this.arrivalLog));
+          } catch (e) {
+            console.error('保存到货登记数据失败:', e);
+          }
 
           // 如果有未知供应商，弹出第一个
           if (this.unknownSuppliersQueue.length > 0) {
             this.currentUnknownSupplier = this.unknownSuppliersQueue[0];
             this.showUnknownSupplierModal = true;
           } else {
+            // 数据已在上面的回填逻辑中保存到 arrivalLog
             alert('匹配完成！');
           }
         },
@@ -4962,6 +5202,111 @@
             this.currentUnknownSupplier = null;
             alert('所有供应商已关联完成！');
           }
+        },
+
+        // 结案功能：计算KPI并标记为已结案
+        closeReceivingTask(task) {
+          if (!task) return;
+          
+          // 在 arrivalLog 中找到对应的记录（通过 _arrivalIndex 或匹配供应商和日期）
+          let arrivalIndex = -1;
+          if (task._arrivalIndex !== undefined && task._arrivalIndex >= 0) {
+            arrivalIndex = task._arrivalIndex;
+          } else {
+            // 通过供应商名称和日期匹配
+            arrivalIndex = this.arrivalLog.findIndex(arrival => 
+              arrival.供应商名称 === task.supplier_cn && 
+              (arrival.日期 === task.到货日期 || arrival.日期 === task.date)
+            );
+          }
+          
+          if (arrivalIndex === -1) {
+            alert('无法找到对应的到货登记记录');
+            return;
+          }
+          
+          const arrival = this.arrivalLog[arrivalIndex];
+          
+          // 如果已结案，不重复处理
+          if (arrival.is_closed) {
+            alert('该任务已结案');
+            return;
+          }
+          
+          // 解析到货日期
+          const arrivalDate = arrival.日期 || '';
+          if (!arrivalDate) {
+            alert('无法结案：缺少到货日期');
+            return;
+          }
+          
+          // 解析日期字符串
+          let arrivalDateStr = arrivalDate;
+          if (arrivalDateStr.includes(' ')) {
+            arrivalDateStr = arrivalDateStr.split(' ')[0];
+          }
+          // 处理日期格式
+          if (arrivalDateStr.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+            arrivalDateStr = arrivalDateStr.replace(/\//g, '-');
+          }
+          const arrivalDateObj = new Date(arrivalDateStr);
+          
+          // 初始化KPI数据
+          let nCount = 0;  // Diff = 0
+          let nPlus1Count = 0;  // Diff = 1
+          let overtimeCount = 0;  // Diff > 1
+          let totalCount = 0;
+          
+          // 遍历logs数组，计算KPI
+          if (arrival.system_data && arrival.system_data.logs) {
+            arrival.system_data.logs.forEach(log => {
+              if (log.date === '未知日期') {
+                // 未知日期的数据不计入KPI
+                return;
+              }
+              
+              const logDateObj = new Date(log.date);
+              const diffDays = Math.floor((logDateObj - arrivalDateObj) / (1000 * 60 * 60 * 24));
+              
+              if (diffDays === 0) {
+                nCount += log.count;
+              } else if (diffDays === 1) {
+                nPlus1Count += log.count;
+              } else if (diffDays > 1) {
+                overtimeCount += log.count;
+              }
+              
+              totalCount += log.count;
+            });
+          }
+          
+          // 计算百分比
+          const nPercent = totalCount > 0 ? Math.round((nCount / totalCount) * 100) : 0;
+          const nPlus1Percent = totalCount > 0 ? Math.round((nPlus1Count / totalCount) * 100) : 0;
+          const overtimePercent = totalCount > 0 ? Math.round((overtimeCount / totalCount) * 100) : 0;
+          
+          // 保存KPI数据到 arrivalLog 记录
+          arrival.kpi = {
+            n: nCount,
+            nPlus1: nPlus1Count,
+            overtime: overtimeCount,
+            total: totalCount,
+            nPercent: nPercent,
+            nPlus1Percent: nPlus1Percent,
+            overtimePercent: overtimePercent
+          };
+          
+          // 标记为已结案
+          arrival.is_closed = true;
+          
+          // 保存到localStorage（保存到 arrivalLogData）
+          try {
+            localStorage.setItem('arrivalLogData', JSON.stringify(this.arrivalLog));
+          } catch (e) {
+            console.error('保存结案数据失败:', e);
+          }
+          
+          alert(`结案成功！\nKPI分布：\nN: ${nPercent}% (${nCount}条)\nN+1: ${nPlus1Percent}% (${nPlus1Count}条)\n超时: ${overtimePercent}% (${overtimeCount}条)`);
         },
 
         // 切换收货任务标签
@@ -5005,7 +5350,13 @@
             supplier_cn: this.newReceivingTask.供应商名称,
             date: this.newReceivingTask.到货日期,
             已完成数量: 0,
-            每日进度记录: []
+            每日进度记录: [],
+            // 新的数据结构：system_data 对象
+            system_data: {
+              total: 0,
+              logs: []
+            },
+            is_closed: false
           };
 
           this.receivingTasks.push(task);
@@ -6166,6 +6517,29 @@
           const savedReceiving = safeLocalStorage.getItem('receivingTasks');
           if (savedReceiving) {
             this.receivingTasks = JSON.parse(savedReceiving);
+            // 兼容性处理：将旧数据格式转换为新格式
+            this.receivingTasks.forEach(task => {
+              // 如果存在旧的 system_lines，转换为新的 system_data 格式
+              if (task.system_lines !== undefined && !task.system_data) {
+                task.system_data = {
+                  total: task.system_lines || 0,
+                  logs: []
+                };
+                // 保留旧字段以兼容（可选）
+                // delete task.system_lines;
+              }
+              // 如果 system_data 不存在，初始化
+              if (!task.system_data) {
+                task.system_data = {
+                  total: 0,
+                  logs: []
+                };
+              }
+              // 如果 is_closed 不存在，初始化为 false
+              if (task.is_closed === undefined) {
+                task.is_closed = false;
+              }
+            });
           }
         } catch (e) {
           console.error('读取收货任务数据失败:', e);
@@ -6188,6 +6562,18 @@
           const savedArrival = safeLocalStorage.getItem('arrivalLogData');
           if (savedArrival) {
             this.arrivalLog = JSON.parse(savedArrival);
+            // 兼容性处理：确保每个记录都有 system_data 和 is_closed 字段
+            this.arrivalLog.forEach(arrival => {
+              if (!arrival.system_data) {
+                arrival.system_data = {
+                  total: arrival.system_lines || 0,
+                  logs: []
+                };
+              }
+              if (arrival.is_closed === undefined) {
+                arrival.is_closed = false;
+              }
+            });
           }
         } catch (e) {
           console.error('读取到货登记数据失败:', e);
