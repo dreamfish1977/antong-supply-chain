@@ -438,59 +438,58 @@
                     <div class="flex-1 w-full">
                       <div class="flex justify-between items-end mb-2">
                         <span class="text-sm font-medium text-gray-500">系统数据核对</span>
-                        <!-- 未结案：显示累计数 -->
+                        <!-- 未结案：显示累计数（简洁显示） -->
                         <template v-if="!task.is_closed">
-                          <span v-if="(task.system_data && task.system_data.total > 0) || (task.system_lines && task.system_lines > 0)" class="text-sm font-bold text-blue-600">
-                            当前累计系统条数：{{ (task.system_data && task.system_data.total) || task.system_lines || 0 }} 条
-                          </span>
-                          <span v-else class="text-xs text-red-400 bg-red-50 px-2 py-1 rounded">
+                          <span v-if="(task.system_data && task.system_data.total > 0) || (task.system_lines && task.system_lines > 0)" class="text-base font-bold text-blue-600">
+                            当前系统累计：{{ (task.system_data && task.system_data.total) || task.system_lines || 0 }} 条
+                        </span>
+                        <span v-else class="text-xs text-red-400 bg-red-50 px-2 py-1 rounded">
                             ⏳ 等待系统数据导入...
-                          </span>
-                        </template>
-                        <!-- 已结案：显示KPI分布 -->
-                        <template v-else-if="task.is_closed && task.kpi">
-                          <div class="flex items-center gap-2 text-xs">
-                            <span class="px-2 py-1 rounded font-bold" :class="task.kpi.nPercent > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'">
-                              N: {{ task.kpi.nPercent }}%
-                            </span>
-                            <span class="px-2 py-1 rounded font-bold" :class="task.kpi.nPlus1Percent > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-400'">
-                              N+1: {{ task.kpi.nPlus1Percent }}%
-                            </span>
-                            <span class="px-2 py-1 rounded font-bold" :class="task.kpi.overtimePercent > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-400'">
-                              超时: {{ task.kpi.overtimePercent }}%
-                            </span>
-                          </div>
+                        </span>
                         </template>
                       </div>
-                      <!-- 未结案：显示进度条 -->
-                      <div v-if="!task.is_closed" class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                        <div 
-                          class="h-full rounded-full transition-all duration-1000"
-                          :class="((task.system_data && task.system_data.total > 0) || (task.system_lines && task.system_lines > 0)) ? 'bg-blue-500' : 'bg-gray-300'"
-                          :style="{ width: ((task.system_data && task.system_data.total > 0) || (task.system_lines && task.system_lines > 0)) ? '100%' : '0%' }"
-                        ></div>
+                      <!-- 未结案：不显示进度条，保持简洁 -->
+                      <!-- 已结案：显示详细的时效分布表格 -->
+                      <template v-if="task.is_closed">
+                        <!-- 如果 total > 0：显示纵向 N/N+1 分布表 -->
+                        <div v-if="task.system_data && task.system_data.total > 0 && task.system_data.logs && task.system_data.logs.length > 0" class="w-full mt-2">
+                          <table class="w-full text-xs border border-gray-200 rounded-lg overflow-hidden">
+                            <thead class="bg-gray-50">
+                              <tr>
+                                <th class="px-2 py-1.5 text-left font-semibold text-gray-700 border-b border-gray-200">收货日期</th>
+                                <th class="px-2 py-1.5 text-left font-semibold text-gray-700 border-b border-gray-200">时效分类</th>
+                                <th class="px-2 py-1.5 text-right font-semibold text-gray-700 border-b border-gray-200">收货条数</th>
+                                <th class="px-2 py-1.5 text-right font-semibold text-gray-700 border-b border-gray-200">占比</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr 
+                                v-for="(log, logIndex) in getSortedLogs(task)" 
+                                :key="logIndex"
+                                class="border-b border-gray-100 hover:bg-gray-50"
+                              >
+                                <td class="px-2 py-1.5 text-gray-800">{{ log.date === '未知日期' ? '未知日期' : log.date }}</td>
+                                <td class="px-2 py-1.5">
+                                  <span 
+                                    class="px-2 py-0.5 rounded text-xs font-medium"
+                                    :class="getTimelinessClass(log, task)"
+                                  >
+                                    {{ getTimelinessLabel(log, task) }}
+                                  </span>
+                                </td>
+                                <td class="px-2 py-1.5 text-right text-gray-800 font-medium">{{ log.count }}</td>
+                                <td class="px-2 py-1.5 text-right text-gray-600">
+                                  {{ getLogPercentage(log, task) }}%
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
                       </div>
-                      <!-- 已结案：显示KPI分布条 -->
-                      <div v-else-if="task.is_closed && task.kpi" class="w-full flex gap-1 h-2 overflow-hidden rounded-full">
-                        <div 
-                          v-if="task.kpi.nPercent > 0"
-                          class="bg-green-500 transition-all duration-1000"
-                          :style="{ width: task.kpi.nPercent + '%' }"
-                          :title="'N: ' + task.kpi.n + '条'"
-                        ></div>
-                        <div 
-                          v-if="task.kpi.nPlus1Percent > 0"
-                          class="bg-yellow-500 transition-all duration-1000"
-                          :style="{ width: task.kpi.nPlus1Percent + '%' }"
-                          :title="'N+1: ' + task.kpi.nPlus1 + '条'"
-                        ></div>
-                        <div 
-                          v-if="task.kpi.overtimePercent > 0"
-                          class="bg-red-500 transition-all duration-1000"
-                          :style="{ width: task.kpi.overtimePercent + '%' }"
-                          :title="'超时: ' + task.kpi.overtime + '条'"
-                        ></div>
-                      </div>
+                        <!-- 如果 total === 0：显示红色文字提示 -->
+                        <div v-else class="w-full mt-2 text-xs text-red-600 text-center py-2 font-medium">
+                          未匹配到系统数据，请检查日期或供应商名称
+                        </div>
+                      </template>
                     </div>
                     <div class="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2">
                       <!-- 结案按钮（仅未结案时显示） -->
@@ -2654,6 +2653,7 @@
           bomData: [],
           matchedWorkOrders: [],
           selectedWorkOrderIndex: -1,
+          _selectedWorkOrder: null, // 内部变量，用于存储选中的工单（支持时间组合并）
           pickingSearchDate: '',
           pickingProjectType: '全部项目', // 项目类型筛选：全部项目, Pitch, SA14, 其他
           batchPrintPages: [], // 批量打印页面数组
@@ -2960,10 +2960,32 @@
             const pitchGroups = {}; // 按时间分组的Pitch数据
             
             baseList.forEach(item => {
-              // 格式化到达时间用于分组
-              const arrivalTime = item.arrival_time || item['到达时间'] || '';
+              // 使用 arrival_time_formatted 进行分组（优先使用格式化后的时间）
               let timeKey = '--';
               
+              // 优先使用 arrival_time_formatted（格式：HH:mm 或 YYYY-MM-DD HH:mm）
+              const arrivalTimeFormatted = item.arrival_time_formatted || item['到达时间格式化'] || '';
+              if (arrivalTimeFormatted) {
+                if (typeof arrivalTimeFormatted === 'string') {
+                  // 如果包含日期时间格式，提取时间部分
+                  if (arrivalTimeFormatted.includes(' ') && arrivalTimeFormatted.includes(':')) {
+                    const timePart = arrivalTimeFormatted.split(' ')[1] || arrivalTimeFormatted.split(' ')[0];
+                    const timeMatch = timePart.match(/(\d{1,2}):(\d{2})/);
+                    if (timeMatch) {
+                      timeKey = `${String(parseInt(timeMatch[1], 10)).padStart(2, '0')}:${timeMatch[2]}`;
+                    } else {
+                      timeKey = timePart.substring(0, 5);
+                    }
+                  } else if (arrivalTimeFormatted.match(/\d{1,2}:\d{2}/)) {
+                    // 纯时间格式 HH:mm
+                    timeKey = arrivalTimeFormatted.substring(0, 5);
+                  }
+                }
+              }
+              
+              // 如果仍未获取到时间，尝试使用 arrival_time
+              if (timeKey === '--') {
+                const arrivalTime = item.arrival_time || item['到达时间'] || '';
               if (arrivalTime) {
                 if (typeof arrivalTime === 'string') {
                   if (arrivalTime.includes(' ') && arrivalTime.includes(':')) {
@@ -2976,11 +2998,8 @@
                     }
                   } else if (arrivalTime.match(/\d{1,2}:\d{2}/)) {
                     timeKey = arrivalTime.substring(0, 5);
-                  } else {
-                    timeKey = arrivalTime;
                   }
-                } else {
-                  timeKey = String(arrivalTime);
+                  }
                 }
               }
 
@@ -3000,9 +3019,11 @@
               .map(timeKey => ({
                 type: 'time_group',
                 timeKey: timeKey,
+                label: timeKey, // 用于显示
                 workOrders: pitchGroups[timeKey],
+                items: pitchGroups[timeKey], // 兼容字段
                 displayTitle: timeKey,
-                displayDesc: '1条'
+                displayDesc: `${pitchGroups[timeKey].length} 个工单`
               }));
           }
           
@@ -3092,10 +3113,30 @@
           baseList.forEach(item => {
             const desc = String(item.description || item['产品描述'] || '').trim().toLowerCase();
             if (desc.includes('pitch')) {
-              // 格式化到达时间用于分组
-              const arrivalTime = item.arrival_time || item['到达时间'] || '';
+              // 使用 arrival_time_formatted 进行分组
               let timeKey = '--';
               
+              // 优先使用 arrival_time_formatted
+              const arrivalTimeFormatted = item.arrival_time_formatted || item['到达时间格式化'] || '';
+              if (arrivalTimeFormatted) {
+                if (typeof arrivalTimeFormatted === 'string') {
+                  if (arrivalTimeFormatted.includes(' ') && arrivalTimeFormatted.includes(':')) {
+                    const timePart = arrivalTimeFormatted.split(' ')[1] || arrivalTimeFormatted.split(' ')[0];
+                    const timeMatch = timePart.match(/(\d{1,2}):(\d{2})/);
+                    if (timeMatch) {
+                      timeKey = `${String(parseInt(timeMatch[1], 10)).padStart(2, '0')}:${timeMatch[2]}`;
+                    } else {
+                      timeKey = timePart.substring(0, 5);
+                    }
+                  } else if (arrivalTimeFormatted.match(/\d{1,2}:\d{2}/)) {
+                    timeKey = arrivalTimeFormatted.substring(0, 5);
+                  }
+                }
+              }
+              
+              // 如果仍未获取到时间，尝试使用 arrival_time
+              if (timeKey === '--') {
+                const arrivalTime = item.arrival_time || item['到达时间'] || '';
               if (arrivalTime) {
                 if (typeof arrivalTime === 'string') {
                   if (arrivalTime.includes(' ') && arrivalTime.includes(':')) {
@@ -3108,11 +3149,8 @@
                     }
                   } else if (arrivalTime.match(/\d{1,2}:\d{2}/)) {
                     timeKey = arrivalTime.substring(0, 5);
-                  } else {
-                    timeKey = arrivalTime;
                   }
-                } else {
-                  timeKey = String(arrivalTime);
+                  }
                 }
               }
 
@@ -3139,9 +3177,11 @@
             .map(timeKey => ({
               type: 'time_group',
               timeKey: timeKey,
+              label: timeKey,
               workOrders: pitchGroups[timeKey],
+              items: pitchGroups[timeKey],
               displayTitle: timeKey,
-              displayDesc: '1条'
+              displayDesc: `${pitchGroups[timeKey].length} 个工单`
             }));
 
           // 生成SA14器具组（按tool_type分组）
@@ -3205,12 +3245,48 @@
 
         // 工单配料：选中的工单（或工单组）
         selectedWorkOrder() {
+          // 如果已经通过 selectWorkOrder 设置了 selectedWorkOrder，直接返回
+          if (this._selectedWorkOrder) {
+            return this._selectedWorkOrder;
+          }
+          
           const list = this.groupedWorkOrderList || [];
           if (this.selectedWorkOrderIndex >= 0 && this.selectedWorkOrderIndex < list.length) {
             const selectedItem = list[this.selectedWorkOrderIndex];
-            // 如果是时间组，返回第一个工单（用于Pitch合并打印）
+            // 如果是时间组，创建合并的工单对象
             if (selectedItem.type === 'time_group' && selectedItem.workOrders && selectedItem.workOrders.length > 0) {
-              return selectedItem.workOrders[0];
+              const mergedWorkOrder = {
+                type: 'time_group',
+                timeKey: selectedItem.timeKey,
+                workOrders: selectedItem.workOrders,
+                description: 'Pitch Axis- FFF',
+                '产品描述': 'Pitch Axis- FFF',
+                arrival_time: selectedItem.timeKey,
+                '到达时间': selectedItem.timeKey,
+                arrival_time_formatted: selectedItem.timeKey,
+                '到达时间格式化': selectedItem.timeKey,
+                materials: [],
+                hasEco: false
+              };
+              
+              // 合并所有工单的物料
+              selectedItem.workOrders.forEach(wo => {
+                if (wo.materials && wo.materials.length > 0) {
+                  wo.materials.forEach(material => {
+                    mergedWorkOrder.materials.push({
+                      ...material,
+                      _work_order: wo.work_order || wo['工单号'] || '',
+                      _op: wo.op || wo['OP'] || ''
+                    });
+                  });
+                  
+                  if (wo.hasEco) {
+                    mergedWorkOrder.hasEco = true;
+                  }
+                }
+              });
+              
+              return mergedWorkOrder;
             }
             // 如果是器具组，返回合并后的工单（包含该器具下所有SA14工单的物料）
             if (selectedItem.type === 'tool_group' && selectedItem.materials && selectedItem.materials.length > 0) {
@@ -4106,6 +4182,14 @@
           if (typeof serial === 'string') {
             const trimmed = serial.trim();
             if (!trimmed) return '--';
+            // 如果包含空格，说明有日期时间格式（如 "2025-12-30 20:14"），截取前10位
+            if (trimmed.includes(' ')) {
+              const datePart = trimmed.substring(0, 10);
+              // 验证是否为有效的日期格式
+              if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+                return datePart;
+              }
+            }
             // 如果已经是 YYYY-MM-DD 格式，直接返回
             if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
               return trimmed;
@@ -4121,6 +4205,8 @@
             return trimmed;
           }
           // Excel 序列号转日期 (1900-01-01 是序列号 1)
+          // 注意：Excel 日期从 1900-01-01 开始，但 Excel 错误地将 1900 年视为闰年
+          // 所以使用 25569 作为基准（1970-01-01 的序列号）
           if (typeof serial === 'number') {
             const date = new Date((serial - 25569) * 86400 * 1000);
             const y = date.getFullYear();
@@ -4129,6 +4215,88 @@
             return `${y}-${m}-${d}`;
           }
           return '--';
+        },
+
+        // ========== 重写：通用日期清洗函数（UTC 整数运算，避免时区偏差） ==========
+        // 无论输入是 Excel 数字、还是带时间的字符串，统一返回 "YYYY-MM-DD" 格式
+        normalizeDate(input) {
+          if (!input && input !== 0) return '';
+          
+          // 1. 处理 Excel 序列号 (数字) - 核心修复
+          if (typeof input === 'number') {
+            // Math.floor 取整，舍弃时间部分，只保留日期
+            const serial = Math.floor(input);
+            // 使用 UTC 时间计算，避免时区偏移
+            // 25569 是 Excel (1900-01-01) 到 Unix (1970-01-01) 的天数差
+            const date = new Date((serial - 25569) * 86400 * 1000);
+            
+            const y = date.getUTCFullYear();
+            const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(date.getUTCDate()).padStart(2, '0');
+            
+            return `${y}-${m}-${d}`;
+          }
+          
+          // 2. 处理字符串 (如 "2025-12-30 13:02")
+          if (typeof input === 'string') {
+            // 直接截取前 10 位，不进行 Date 对象转换，防止时区干扰
+            return input.trim().substring(0, 10);
+          }
+          
+          return '';
+        },
+
+        // ========== 智能列名查找函数 ==========
+        // 遍历 row 的所有 key，如果 key 包含 keywords 中的任意一个（不区分大小写，忽略空格），就返回该 key 对应的值
+        // 例如：findColumnValue(row, ['Date', '日期']) 能匹配到 "Transaction Date", "Date ", "收货日期" 等
+        findColumnValue(row, keywords) {
+          if (!row || !keywords || keywords.length === 0) {
+            return null;
+          }
+          
+          // 将 keywords 转换为小写，去除空格，用于匹配
+          const normalizedKeywords = keywords.map(k => k.toLowerCase().replace(/\s+/g, ''));
+          
+          // 遍历 row 的所有 key
+          for (const key in row) {
+            if (row.hasOwnProperty(key)) {
+              // 将 key 标准化：转小写，去除空格
+              const normalizedKey = key.toLowerCase().replace(/\s+/g, '');
+              
+              // 检查是否包含任意一个 keyword
+              for (const keyword of normalizedKeywords) {
+                if (normalizedKey.includes(keyword) || keyword.includes(normalizedKey)) {
+                  return row[key];
+                }
+              }
+            }
+          }
+          
+          return null;
+        },
+
+        // ========== 辅助函数：计算日期的前一天和后一天 ==========
+        // 输入：YYYY-MM-DD 格式的字符串
+        // 返回：{ prevDay: 'YYYY-MM-DD', nextDay: 'YYYY-MM-DD' }
+        getAdjacentDates(dateStr) {
+          if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            return { prevDay: '', nextDay: '' };
+          }
+          
+          const [year, month, day] = dateStr.split('-').map(Number);
+          const date = new Date(year, month - 1, day);
+          
+          // 前一天
+          const prevDate = new Date(date);
+          prevDate.setDate(prevDate.getDate() - 1);
+          const prevDay = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
+          
+          // 后一天
+          const nextDate = new Date(date);
+          nextDate.setDate(nextDate.getDate() + 1);
+          const nextDay = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
+          
+          return { prevDay, nextDay };
         },
 
         // 2. 辅助函数：处理 Excel 的时间格式 (小数转 HH:mm)
@@ -4355,13 +4523,27 @@
                 const arrivalDateRaw = row['到达日期'] || row['使用日期'] || '';
                 const arrivalDate = this.formatExcelDate(arrivalDateRaw);
                 
-                // 解析到达时间：严格格式化为 HH:mm，不包含日期
+                // 解析到达时间：强制格式化为 HH:mm
                 const arrivalTimeRaw = row['到达时间'] || '';
                 let arrivalTime = '';
+                let timeDecimal = null;
                 
-                // 如果读取到的是Excel小数（0-1之间），转换为HH:mm
-                if (typeof arrivalTimeRaw === 'number' && arrivalTimeRaw >= 0 && arrivalTimeRaw < 1) {
-                  arrivalTime = this.formatExcelTime(arrivalTimeRaw);
+                // 处理Excel序列号（如45988.35）：如果值>1，取小数部分
+                if (typeof arrivalTimeRaw === 'number') {
+                  if (arrivalTimeRaw >= 1) {
+                    // 包含日期，取小数部分
+                    timeDecimal = arrivalTimeRaw % 1;
+                  } else if (arrivalTimeRaw >= 0 && arrivalTimeRaw < 1) {
+                    // 纯时间小数
+                    timeDecimal = arrivalTimeRaw;
+                  }
+                  
+                  if (timeDecimal !== null) {
+                    // 计算小时和分钟
+                    const hours = Math.floor(timeDecimal * 24);
+                    const minutes = Math.round((timeDecimal * 24 % 1) * 60);
+                    arrivalTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                  }
                 }
                 // 如果读取到的是日期对象，提取时间部分
                 else if (arrivalTimeRaw instanceof Date) {
@@ -4388,18 +4570,33 @@
                   else if (timeStr.match(/\d{1,2}:\d{2}/)) {
                     arrivalTime = timeStr.substring(0, 5);
                   }
-                  // 否则使用formatExcelTime处理
+                  // 尝试解析为数字字符串
                   else {
-                    arrivalTime = this.formatExcelTime(arrivalTimeRaw);
+                    const numVal = parseFloat(timeStr);
+                    if (!isNaN(numVal)) {
+                      if (numVal >= 1) {
+                        timeDecimal = numVal % 1;
+                      } else if (numVal >= 0) {
+                        timeDecimal = numVal;
+                      }
+                      if (timeDecimal !== null) {
+                        const hours = Math.floor(timeDecimal * 24);
+                        const minutes = Math.round((timeDecimal * 24 % 1) * 60);
+                        arrivalTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                      }
+                    }
                   }
                 }
-                // 其他情况使用formatExcelTime
-                else {
+                
+                // 如果仍未解析成功，使用formatExcelTime作为后备
+                if (!arrivalTime) {
                   arrivalTime = this.formatExcelTime(arrivalTimeRaw);
                 }
                 
                 // 组合日期时间（用于完整显示）
-                const arrivalTimeFormatted = this.formatExcelDateTime(arrivalDateRaw, arrivalTimeRaw);
+                const arrivalTimeFormatted = arrivalTime && arrivalTime !== '--' 
+                  ? `${arrivalDate || '--'} ${arrivalTime}` 
+                  : '--';
 
                 return {
                   work_order: workOrder,
@@ -4575,10 +4772,32 @@
               emptyToolCount++;
             }
             
-            const key = `${bom.Job}|${bom.OP}`;
-            if (matchedMap[key]) {
-              matchedMap[key].materials.push(bom);
-            }
+            // 3. 严格匹配：双重钥匙匹配（工单号 AND OP）
+            const bomJob = String(bom.Job || '').trim();
+            const bomOP = String(bom.OP || '').trim();
+            
+            // 遍历 matchedMap，找到完全匹配的工单
+            Object.keys(matchedMap).forEach(key => {
+              const workOrder = matchedMap[key];
+              const planWorkOrder = String(workOrder.work_order || workOrder['工单号'] || '').trim();
+              const planOP = String(workOrder.op || workOrder['OP'] || '').trim();
+              
+              // 双重匹配：工单号和OP都必须完全一致
+              if (planWorkOrder === bomJob && planOP === bomOP) {
+                // 匹配成功，将物料添加到工单
+                workOrder.materials.push(bom);
+                
+                // 将 Plan 的 arrival_time_formatted 赋给 BOM 物料（如果还没有）
+                if (!bom.arrival_time_formatted && workOrder.arrival_time_formatted) {
+                  bom.arrival_time_formatted = workOrder.arrival_time_formatted;
+                  bom['到达时间格式化'] = workOrder.arrival_time_formatted;
+                }
+                if (!bom.arrival_time && workOrder.arrival_time) {
+                  bom.arrival_time = workOrder.arrival_time;
+                  bom['到达时间'] = workOrder.arrival_time;
+                }
+              }
+            });
           });
 
           // 转换为数组并应用 ECO 拦截
@@ -4625,12 +4844,57 @@
           }
         },
 
-        // 选择工单
+        // 选择工单（支持时间组）
         selectWorkOrder(index) {
           this.selectedWorkOrderIndex = index;
           this.printTime = new Date().toLocaleString('zh-CN');
           // 清除批量打印预览
           this.batchPrintPages = [];
+          
+          // 如果选择的是时间组（Pitch），需要合并所有工单的物料
+          const group = this.groupedWorkOrderList[index];
+          if (group && group.type === 'time_group') {
+            // 创建一个合并的工单对象，包含该时间组下所有工单的物料
+            const mergedWorkOrder = {
+              type: 'time_group',
+              timeKey: group.timeKey,
+              workOrders: group.workOrders || group.items || [],
+              description: 'Pitch Axis- FFF',
+              '产品描述': 'Pitch Axis- FFF',
+              arrival_time: group.timeKey,
+              '到达时间': group.timeKey,
+              arrival_time_formatted: group.timeKey,
+              '到达时间格式化': group.timeKey,
+              materials: [],
+              hasEco: false
+            };
+            
+            // 合并所有工单的物料
+            (group.workOrders || group.items || []).forEach(wo => {
+              if (wo.materials && wo.materials.length > 0) {
+                wo.materials.forEach(material => {
+                  // 为每个物料添加所属工单号和OP信息
+                  mergedWorkOrder.materials.push({
+                    ...material,
+                    _work_order: wo.work_order || wo['工单号'] || '',
+                    _op: wo.op || wo['OP'] || ''
+                  });
+                });
+                
+                // 检查是否有ECO
+                if (wo.hasEco) {
+                  mergedWorkOrder.hasEco = true;
+                }
+              }
+            });
+            
+            // 将合并后的工单设置为选中工单（使用内部变量）
+            this._selectedWorkOrder = mergedWorkOrder;
+          } else {
+            // 普通工单或器具组
+            const workOrder = group.workOrder || (group.workOrders && group.workOrders[0]) || group;
+            this._selectedWorkOrder = workOrder;
+          }
         },
 
         // 判断是否为 Pitch 产品
@@ -4651,6 +4915,54 @@
         generatePrintPages(workOrder) {
           if (!workOrder) {
             return [];
+          }
+
+          // 如果是时间组（Pitch按时间分组），合并所有工单的物料
+          if (workOrder.type === 'time_group' && workOrder.workOrders) {
+            const allMergedMaterials = [];
+            let hasEco = false;
+            
+            // 合并所有工单的物料
+            workOrder.workOrders.forEach(wo => {
+              if (wo.materials && wo.materials.length > 0) {
+                wo.materials.forEach(material => {
+                  allMergedMaterials.push({
+                    ...material,
+                    _work_order: wo.work_order || wo['工单号'] || '',
+                    _op: wo.op || wo['OP'] || ''
+                  });
+                });
+                
+                if (wo.hasEco) {
+                  hasEco = true;
+                }
+              }
+            });
+            
+            // 排序：先按tool_type，再按locator
+            const sortedMaterials = allMergedMaterials.sort((a, b) => {
+              const toolA = String(a.tool_type || a['tool_type'] || '').trim();
+              const toolB = String(b.tool_type || b['tool_type'] || '').trim();
+              if (toolA !== toolB) {
+                return toolA.localeCompare(toolB, 'zh-CN');
+              }
+              const locA = String(a.PENDING_LOCATOR || a['PENDING_LOCATOR'] || '').trim();
+              const locB = String(b.PENDING_LOCATOR || b['PENDING_LOCATOR'] || '').trim();
+              return locA.localeCompare(locB, 'zh-CN');
+            });
+            
+            const info = {
+              description: 'Pitch Axis- FFF',
+              '产品描述': 'Pitch Axis- FFF',
+              hasEco: hasEco
+            };
+            
+            const timeKey = workOrder.timeKey || workOrder.arrival_time || '--';
+            return [{
+              title: `到达时间：[${timeKey}]`,
+              info: info,
+              materials: sortedMaterials
+            }];
           }
 
           // 如果是器具组（SA14按器具分组），直接使用已分组的物料
@@ -4947,7 +5259,7 @@
           }
         },
 
-        // 处理流水表上传
+        // ========== 重写：处理流水表上传（简化版） ==========
         handleTransactionLogUpload(event) {
           const file = event.target.files[0];
           if (!file) return;
@@ -4977,7 +5289,7 @@
           }
         },
 
-        // 处理关系表上传
+        // ========== 重写：处理关系表上传（简化版） ==========
         handleMappingTableUpload(event) {
           const file = event.target.files[0];
           if (!file) return;
@@ -5000,80 +5312,288 @@
           reader.readAsArrayBuffer(file);
         },
 
-        // 开始匹配计算
+        // ========== 重写：开始匹配计算（全新线性流程） ==========
         startMatching() {
           if (!this.transactionLogData || !this.mappingTableData) {
             alert('请先上传流水表和关系表');
             return;
           }
 
-          // 建立 Item -> Supplier 映射
-          this.itemToSupplierMap = {};
-          this.mappingTableData.forEach(row => {
-            const item = String(row['物料号'] || row['Item'] || '').trim();
-            const supplier = String(row['供应商'] || row['Supplier'] || '').trim();
-            if (item && supplier) {
-              this.itemToSupplierMap[item] = supplier;
-            }
-          });
+          // 调用新的处理流程
+          this.processMatching(this.transactionLogData, this.mappingTableData);
+        },
 
-          // 解析GE数据，按日期和供应商分组统计
-          const geDataByDateAndSupplier = {}; // { '2025-12-28|供应商名': count }
+        // ========== 全新匹配流程：线性处理，详细日志 ==========
+        processMatching(transactionData, mappingData) {
+          console.log('--- 开始全新匹配流程 ---');
           
-          this.transactionLogData.forEach(row => {
-            const item = String(row['物料号'] || row['Item'] || '').trim();
-            const supplierEn = this.itemToSupplierMap[item];
+          // ========== 第一步：构建字典 Map (Item -> SupplierCN) ==========
+          console.log('【第一步】构建字典 Map (Item -> SupplierCN)');
+          const itemToSupplierCnMap = new Map(); // 物料号 -> 中文供应商名
+          const unknownSuppliersEn = new Set(); // 收集需要关联的英文供应商名
+          
+          mappingData.forEach((row, index) => {
+            // 使用智能列名查找
+            const itemValue = this.findColumnValue(row, ['Item', '物料', 'Part', '物料号']);
+            const supplierValue = this.findColumnValue(row, ['Supplier', '供应商', 'Vendor']);
             
-            if (supplierEn) {
-              // 查字典：将英文名转为中文
+            const itemKey = itemValue ? String(itemValue).trim() : '';
+            const supplierEn = supplierValue ? String(supplierValue).trim() : '';
+            
+            if (index === 0) {
+              console.log('关系表第一行:', { itemKey, supplierEn });
+            }
+            
+            if (itemKey && supplierEn) {
+              // 查字典：英文名 -> 中文名
               const supplierCn = this.supplierMap[supplierEn] || supplierEn;
               
-              // 解析日期（支持多种格式）
-              let geDate = '';
-              const dateRaw = row['日期'] || row['Date'] || row['交易日期'] || row['Transaction Date'] || '';
-              if (dateRaw) {
-                if (dateRaw instanceof Date) {
-                  geDate = dateRaw.toISOString().split('T')[0];
-                } else if (typeof dateRaw === 'string') {
-                  // 尝试解析日期字符串
-                  const dateMatch = dateRaw.match(/(\d{4}[-/]\d{1,2}[-/]\d{1,2})/);
-                  if (dateMatch) {
-                    geDate = dateMatch[1].replace(/\//g, '-');
-                    // 确保格式为 YYYY-MM-DD
-                    const parts = geDate.split('-');
-                    if (parts.length === 3) {
-                      geDate = `${parts[0]}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`;
-                    }
-                  }
-                } else if (typeof dateRaw === 'number') {
-                  // Excel日期数字
-                  const excelDate = this.formatExcelDate(dateRaw);
-                  geDate = excelDate;
-                }
+              // 如果字典中没有，记录需要关联
+              if (!this.supplierMap[supplierEn]) {
+                unknownSuppliersEn.add(supplierEn);
               }
               
-              if (geDate) {
-                const key = `${geDate}|${supplierCn}`;
-                if (!geDataByDateAndSupplier[key]) {
-                  geDataByDateAndSupplier[key] = 0;
-                }
-                geDataByDateAndSupplier[key]++;
+              // 建立映射：物料号 -> 中文供应商名
+              itemToSupplierCnMap.set(itemKey, supplierCn);
+            }
+          });
+          
+          console.log(`字典构建完成: ${itemToSupplierCnMap.size} 个物料映射`);
+          console.log(`需要关联的供应商: ${unknownSuppliersEn.size} 个`, Array.from(unknownSuppliersEn));
+          
+          // ========== 第二步：聚合 Excel 数据 (Excel Aggregation) - 纯行数计数 ==========
+          console.log('【第二步】聚合 Excel 数据（纯行数计数）');
+          const excelAggregatedData = []; // [{ supplier: '苹果公司', date: '2025-12-30', count: 30 }, ...]
+          const unknownItems = [];
+          
+          transactionData.forEach((row, index) => {
+            // 使用智能列名查找 Item
+            const itemValue = this.findColumnValue(row, ['Item', '物料', 'Part', '物料号']);
+            const itemKey = itemValue ? String(itemValue).trim() : '';
+            
+            if (index === 0) {
+              console.log('流水表第一行:', { itemKey, '所有列名': Object.keys(row) });
+            }
+            
+            if (!itemKey) {
+              return; // 跳过空物料号
+            }
+            
+            // 通过 Item 找到 Supplier（中文名）
+            const supplierCn = itemToSupplierCnMap.get(itemKey);
+            
+            if (!supplierCn) {
+              if (!unknownItems.includes(itemKey)) {
+                unknownItems.push(itemKey);
+              }
+              return; // 跳过，不进行统计
+            }
+            
+            // 日期处理：使用智能列名查找，然后调用 normalizeDate 获取纯日期（UTC 取整）
+            const dateValue = this.findColumnValue(row, ['Date', '日期', 'Time', '交易日期', 'Transaction Date']);
+            const dateRaw = dateValue || '';
+            const excelDate = this.normalizeDate(dateRaw);
+            
+            if (index === 0) {
+              console.log(`日期清洗: ${dateRaw} -> ${excelDate}`);
+            }
+            
+            // 核心聚合逻辑：纯行数计数（每行只加 1，不读取任何数量字段）
+            // 注意：不读取 row['Transaction Quantity'] 或任何数量字段
+            if (excelDate) {
+              const existingIndex = excelAggregatedData.findIndex(
+                item => item.supplier === supplierCn && item.date === excelDate
+              );
+              
+              if (existingIndex >= 0) {
+                excelAggregatedData[existingIndex].count += 1; // 核心：每行只加 1
               } else {
-                // 如果没有日期，按供应商统计
-                const key = `no_date|${supplierCn}`;
-                if (!geDataByDateAndSupplier[key]) {
-                  geDataByDateAndSupplier[key] = 0;
-                }
-                geDataByDateAndSupplier[key]++;
+                excelAggregatedData.push({
+                  supplier: supplierCn,
+                  date: excelDate,
+                  count: 1 // 核心：每行只加 1
+                });
               }
             } else {
-              // 未知供应商，加入队列
-              if (!this.unknownSuppliersQueue.includes(item)) {
-                this.unknownSuppliersQueue.push(item);
+              // 没有日期的数据
+              const existingIndex = excelAggregatedData.findIndex(
+                item => item.supplier === supplierCn && item.date === '未知日期'
+              );
+              
+              if (existingIndex >= 0) {
+                excelAggregatedData[existingIndex].count += 1; // 核心：每行只加 1
+              } else {
+                excelAggregatedData.push({
+                  supplier: supplierCn,
+                  date: '未知日期',
+                  count: 1 // 核心：每行只加 1
+                });
               }
             }
           });
+          
+          // 调试日志：打印聚合后的结果（按供应商和日期分组）
+          console.log(`Excel 聚合完成: ${excelAggregatedData.length} 条数据`);
+          console.log('Excel 聚合数据示例（前5条）:', excelAggregatedData.slice(0, 5));
+          
+          // 打印聚合后的完整结果（用于核对行数）
+          const aggregatedMap = {};
+          excelAggregatedData.forEach(item => {
+            const key = `${item.supplier}|${item.date}`;
+            aggregatedMap[key] = item.count;
+          });
+          console.log('Excel 聚合结果（完整）:', aggregatedMap);
+          
+          // 处理未找到供应商的物料
+          if (unknownItems.length > 0) {
+            const itemsList = unknownItems.slice(0, 10).join('、');
+            const moreText = unknownItems.length > 10 ? `等共 ${unknownItems.length} 个` : '';
+            alert(`⚠️ 警告：以下物料在关系表中未找到供应商：${itemsList}${moreText}\n\n请检查关系表是否包含这些物料，或检查物料号是否包含空格。`);
+          }
+          
+          // ========== 第三步：暴力匹配 (Brute Force Matching) - 严格日期匹配 ==========
+          console.log('【第三步】暴力匹配：遍历到货登记列表，查找 Excel 数据（严格日期匹配）');
+          console.log(`待匹配任务数: ${this.arrivalLog.length}`);
+          
+          let matchCount = 0;
+          
+          // 为每个 Excel 数据项添加消费标记，用于检测未关联数据
+          excelAggregatedData.forEach(item => {
+            item._isConsumed = false; // 标记是否被匹配
+          });
+          
+          // 更改目标数组：从 this.receivingTasks 改为 this.arrivalLog
+          this.arrivalLog.forEach((arrival, arrivalIndex) => {
+            // 确保数据字段兼容：供应商字段可能是 supplier 或 供应商名称
+            const taskSupplier = arrival.供应商名称 || arrival.supplier || arrival.supplier_cn || '';
+            // 日期字段：arrivalLog 中使用的是 日期 字段
+            const taskDateRaw = arrival.日期 || arrival.date || '';
+            const taskDate = this.normalizeDate(taskDateRaw);
+            
+            console.log(`\n[到货登记 ${arrivalIndex + 1}] 供应商: ${taskSupplier}, 日期: ${taskDateRaw} (清洗后: ${taskDate})`);
+            
+            // 寻找 Excel 中对应的数据
+            // 匹配条件：中文名相同 AND 日期严格相等（移除宽容匹配）
+            const match = excelAggregatedData.find(excelItem => {
+              const isNameMatch = excelItem.supplier === taskSupplier;
+              
+              if (!isNameMatch) {
+                return false;
+              }
+              
+              // 严格日期匹配：日期必须完全相等
+              if (excelItem.date === '未知日期') {
+                // 未知日期也算匹配
+                return true;
+              }
+              
+              if (!taskDate) {
+                console.log(`  -> 任务日期为空，跳过匹配`);
+                return false;
+              }
+              
+              // 严格相等匹配：taskDate === excelItem.date
+              const isDateMatch = taskDate === excelItem.date;
+              
+              if (isDateMatch) {
+                console.log(`  -> 日期严格匹配: 任务日期=${taskDate}, Excel日期=${excelItem.date}`);
+              } else {
+                console.log(`  -> 日期不匹配: 任务日期=${taskDate}, Excel日期=${excelItem.date}`);
+              }
+              
+              return isDateMatch;
+            });
+            
+            // 执行更新：按日期智能合并（Upsert 逻辑）
+            if (match) {
+              console.log(`  ✓ 命中任务: ${taskSupplier} ${taskDate} -> 更新为 ${match.count} 条（行数）`);
+              
+              // 标记该 Excel 数据已被消费
+              match._isConsumed = true;
+              
+              // 移除过滤条件：无论是否结案 (is_closed)，只要匹配上就强制更新数据
+              // 1. 初始化 system_data 和 logs
+              if (!arrival.system_data) {
+                arrival.system_data = { total: 0, logs: [] };
+              }
+              if (!arrival.system_data.logs) {
+                arrival.system_data.logs = [];
+              }
+              
+              // 2. 确定要使用的日期（使用匹配到的日期）
+              const excelDate = match.date === '未知日期' ? '未知日期' : match.date;
+              
+              // 3. 按日期查找是否存在
+              const existingLogIndex = arrival.system_data.logs.findIndex(log => log.date === excelDate);
+              
+              if (existingLogIndex >= 0) {
+                // A. 如果已存在当天数据 -> 覆盖（修正），避免重复上传时数据翻倍
+                const oldCount = arrival.system_data.logs[existingLogIndex].count;
+                arrival.system_data.logs[existingLogIndex].count = match.count; // 覆盖，不是累加
+                console.log(`  -> 覆盖已有数据: ${excelDate} ${oldCount}条 -> ${match.count}条`);
+              } else {
+                // B. 如果是新日期 -> 追加（新增）
+                arrival.system_data.logs.push({ date: excelDate, count: match.count });
+                console.log(`  -> 新增日期数据: ${excelDate} ${match.count}条`);
+              }
+              
+              // 4. 重新计算总数（Sum）
+              const newTotal = arrival.system_data.logs.reduce((sum, log) => sum + log.count, 0);
+              arrival.system_lines = newTotal;
+              arrival.system_data.total = newTotal;
+              
+              matchCount++;
+              
+              if (arrival.is_closed) {
+                console.log(`  -> 任务已结案，但已强制更新数据`);
+              }
+            } else {
+              console.log(`  ✗ 未匹配: 供应商=${taskSupplier ? '✓' : '✗'}, 日期=${taskDate ? '✓' : '✗'}`);
+            }
+          });
+          
+          console.log(`\n========== 匹配完成，共更新 ${matchCount} 个任务 ==========`);
+          
+          // ========== 新增：未关联数据报警 ==========
+          const unmatchedData = excelAggregatedData.filter(item => !item._isConsumed);
+          
+          if (unmatchedData.length > 0) {
+            console.log('⚠️ 警告：发现未关联的 Excel 数据:', unmatchedData);
+            
+            // 构建报警消息
+            const unmatchedMessages = unmatchedData.slice(0, 10).map(item => {
+              return `- ${item.supplier} ${item.date}: ${item.count}条`;
+            });
+            
+            const moreText = unmatchedData.length > 10 ? `\n... 还有 ${unmatchedData.length - 10} 条未关联数据` : '';
+            const alertMessage = `警告：Excel 中有部分数据未在系统中登记，请检查漏录：\n${unmatchedMessages.join('\n')}${moreText}`;
+            
+            alert(alertMessage);
+          }
+          
+          // 保存更新后的 arrivalLog 到 localStorage
+          try {
+            localStorage.setItem('arrivalLogData', JSON.stringify(this.arrivalLog));
+          } catch (e) {
+            console.error('保存到货登记数据失败:', e);
+          }
+          
+          // ========== 第四步：未知供应商处理 ==========
+          console.log('【第四步】未知供应商处理');
+          
+          if (unknownSuppliersEn.size > 0) {
+            const suppliersArray = Array.from(unknownSuppliersEn);
+            this.unknownSuppliersQueue = [];
+            this.currentUnknownSupplier = suppliersArray[0];
+            this.showUnknownSupplierModal = true;
+            console.log(`需要关联 ${suppliersArray.length} 个供应商`);
+          } else {
+            alert(`匹配完成！成功更新 ${matchCount} 个任务。`);
+          }
+        },
 
+        // 数据回填方法：将匹配结果累加到 arrivalLog
+        fillMatchedDataToArrivalLog(geDataByDateAndSupplier) {
           // 数据回填：累加数据到 arrivalLog（而不是 receivingTasks）
           this.arrivalLog.forEach((arrival, index) => {
             // 如果已结案，跳过更新（不覆盖已结案的数据）
@@ -5135,14 +5655,14 @@
                     // 累加
                     arrival.system_data.logs[existingLogIndex].count += geDataByDateAndSupplier[key];
                   } else {
-                    // 新增
+                    // 新增：push 到 logs 数组
                     matchedLogs.push({ date: geDate, count: geDataByDateAndSupplier[key] });
                   }
                 }
               }
             });
             
-            // 添加新的logs
+            // 添加新的logs（push 到数组）
             matchedLogs.forEach(log => {
               arrival.system_data.logs.push(log);
             });
@@ -5160,18 +5680,9 @@
           } catch (e) {
             console.error('保存到货登记数据失败:', e);
           }
-
-          // 如果有未知供应商，弹出第一个
-          if (this.unknownSuppliersQueue.length > 0) {
-            this.currentUnknownSupplier = this.unknownSuppliersQueue[0];
-            this.showUnknownSupplierModal = true;
-          } else {
-            // 数据已在上面的回填逻辑中保存到 arrivalLog
-            alert('匹配完成！');
-          }
         },
 
-        // 保存未知供应商映射
+        // ========== 重写：保存未知供应商映射（使用新匹配逻辑） ==========
         saveUnknownSupplierMapping() {
           const cnName = (this.unknownSupplierCnInput || '').trim();
           if (!cnName) {
@@ -5179,15 +5690,25 @@
             return;
           }
 
-          // 更新映射表
-          this.itemToSupplierMap[this.currentUnknownSupplier] = cnName;
-          this.supplierMap[this.currentUnknownSupplier] = cnName;
+          // 更新映射表：currentUnknownSupplier 现在是供应商英文名
+          const supplierEn = this.currentUnknownSupplier;
+          if (supplierEn) {
+            this.supplierMap[supplierEn] = cnName;
 
           // 保存到 localStorage
           try {
             localStorage.setItem('supplierMap', JSON.stringify(this.supplierMap));
           } catch (e) {
             console.error('保存供应商映射失败:', e);
+            }
+          }
+
+          // ========== 关联回调修复：立即触发重试匹配 ==========
+          // 重新处理流水表数据，针对刚才关联的供应商进行补录
+          if (this.transactionLogData && this.mappingTableData) {
+            console.log('========== 关联回调：重新匹配 ==========');
+            // 直接调用新的 processMatching 方法，它会自动处理所有匹配逻辑
+            this.processMatching(this.transactionLogData, this.mappingTableData);
           }
 
           // 从队列移除
@@ -5196,12 +5717,142 @@
 
           // 如果还有未知供应商，继续弹出
           if (this.unknownSuppliersQueue.length > 0) {
-            this.currentUnknownSupplier = this.unknownSuppliersQueue[0];
+            // 重新查找下一个需要关联的供应商
+            const suppliersNeedingMapping = [];
+            if (this.mappingTableData) {
+              this.mappingTableData.forEach(row => {
+                const itemKey = String(
+                  row['物料号'] || 
+                  row['Item'] || 
+                  row['item'] || 
+                  row['ITEM'] || 
+                  ''
+                ).trim();
+                const supplierEn = String(
+                  row['供应商'] || 
+                  row['Supplier'] || 
+                  row['supplier'] || 
+                  row['SUPPLIER'] || 
+                  ''
+                ).trim();
+                if (itemKey && supplierEn && !this.supplierMap[supplierEn]) {
+                  if (!suppliersNeedingMapping.find(s => s.supplier === supplierEn)) {
+                    suppliersNeedingMapping.push({
+                      item: itemKey,
+                      supplier: supplierEn
+                    });
+                  }
+                }
+              });
+            }
+            
+            if (suppliersNeedingMapping.length > 0) {
+              this.currentUnknownSupplier = suppliersNeedingMapping[0].supplier;
+            } else {
+              this.showUnknownSupplierModal = false;
+              this.currentUnknownSupplier = null;
+              alert('所有供应商已关联完成！');
+            }
           } else {
             this.showUnknownSupplierModal = false;
             this.currentUnknownSupplier = null;
             alert('所有供应商已关联完成！');
           }
+        },
+
+        // 获取排序后的logs（按日期排序）
+        getSortedLogs(task) {
+          if (!task || !task.system_data || !task.system_data.logs) {
+            return [];
+          }
+          const logs = [...task.system_data.logs];
+          // 排除"未知日期"，按日期排序
+          return logs
+            .filter(log => log.date !== '未知日期')
+            .sort((a, b) => {
+              const dateA = new Date(a.date);
+              const dateB = new Date(b.date);
+              return dateA - dateB;
+            });
+        },
+
+        // 计算时效分类标签
+        getTimelinessLabel(log, task) {
+          if (log.date === '未知日期') {
+            return '未知';
+          }
+          
+          const arrivalDate = task.日期 || task.date || '';
+          if (!arrivalDate) {
+            return '未知';
+          }
+          
+          // 解析到货日期
+          let arrivalDateStr = arrivalDate;
+          if (arrivalDateStr.includes(' ')) {
+            arrivalDateStr = arrivalDateStr.split(' ')[0];
+          }
+          if (arrivalDateStr.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+            arrivalDateStr = arrivalDateStr.replace(/\//g, '-');
+          }
+          
+          const arrivalDateObj = new Date(arrivalDateStr);
+          const logDateObj = new Date(log.date);
+          const diffDays = Math.floor((logDateObj - arrivalDateObj) / (1000 * 60 * 60 * 24));
+          
+          if (diffDays === 0) {
+            return 'N (当天)';
+          } else if (diffDays === 1) {
+            return 'N+1';
+          } else if (diffDays > 1) {
+            return `超时 (N+${diffDays})`;
+          } else {
+            return '未知';
+          }
+        },
+
+        // 获取时效分类的CSS类
+        getTimelinessClass(log, task) {
+          if (log.date === '未知日期') {
+            return 'bg-gray-100 text-gray-600';
+          }
+          
+          const arrivalDate = task.日期 || task.date || '';
+          if (!arrivalDate) {
+            return 'bg-gray-100 text-gray-600';
+          }
+          
+          // 解析到货日期
+          let arrivalDateStr = arrivalDate;
+          if (arrivalDateStr.includes(' ')) {
+            arrivalDateStr = arrivalDateStr.split(' ')[0];
+          }
+          if (arrivalDateStr.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+            arrivalDateStr = arrivalDateStr.replace(/\//g, '-');
+          }
+          
+          const arrivalDateObj = new Date(arrivalDateStr);
+          const logDateObj = new Date(log.date);
+          const diffDays = Math.floor((logDateObj - arrivalDateObj) / (1000 * 60 * 60 * 24));
+          
+          if (diffDays === 0) {
+            return 'bg-green-100 text-green-700';
+          } else if (diffDays === 1) {
+            return 'bg-yellow-100 text-yellow-700';
+          } else if (diffDays > 1) {
+            return 'bg-red-100 text-red-700';
+          } else {
+            return 'bg-gray-100 text-gray-600';
+          }
+        },
+
+        // 计算占比
+        getLogPercentage(log, task) {
+          if (!task || !task.system_data || !task.system_data.total || task.system_data.total === 0) {
+            return '0.0';
+          }
+          const percentage = (log.count / task.system_data.total) * 100;
+          return percentage.toFixed(1);
         },
 
         // 结案功能：计算KPI并标记为已结案
