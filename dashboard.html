@@ -2418,7 +2418,15 @@
                       </td>
                       <td class="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{{ item.单位 || '--' }}</td>
                       <td class="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{{ item.送货单号 || '--' }}</td>
-                      <td class="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{{ item.备注 || '--' }}</td>
+                      <td class="px-4 py-3 text-sm text-gray-800" style="max-width: 200px;">
+                        <div 
+                          class="truncate" 
+                          :title="item.备注 || '--'"
+                          style="white-space: pre-wrap; word-break: break-word; max-height: 60px; overflow-y: auto;"
+                        >
+                          {{ item.备注 || '--' }}
+                        </div>
+                      </td>
                       <td class="px-4 py-3 text-center whitespace-nowrap">
                         <div class="flex gap-2 justify-center">
                           <button 
@@ -2457,23 +2465,13 @@
               <div class="bg-white rounded-lg p-6 w-full max-w-md">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">登记到货</h3>
                 <div class="space-y-4">
-                  <div class="grid grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">日期 *</label>
-                      <input
-                        type="date"
-                        v-model="newArrival.日期"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">时间 *</label>
-                      <input
-                        type="time"
-                        v-model="newArrival.时间"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                      />
-                    </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">日期 *</label>
+                    <input
+                      type="date"
+                      v-model="newArrival.日期"
+                      class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    />
                   </div>
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">供应商名称 *</label>
@@ -2755,6 +2753,7 @@
           matchedWorkOrders: [],
           selectedWorkOrderIndex: -1,
           _selectedWorkOrder: null, // 内部变量，用于存储选中的工单（支持时间组合并）
+          _printPages: [], // 缓存的打印页面数组，避免重复计算
           pickingSearchDate: '',
           pickingProjectType: '全部项目', // 项目类型筛选：全部项目, Pitch, SA14, 其他
           batchPrintPages: [], // 批量打印页面数组
@@ -2801,7 +2800,6 @@
           showArrivalModal: false,
           newArrival: {
             日期: '',
-            时间: '',
             供应商名称: '',
             实物数量: '',
             单位: '托',
@@ -3569,13 +3567,9 @@
           return list;
         },
 
-        // 工单配料：打印页面数组
+        // 工单配料：打印页面数组（返回缓存值，避免重复计算）
         printPages() {
-          const workOrder = this.selectedWorkOrder;
-          if (!workOrder) {
-            return [];
-          }
-          return this.generatePrintPages(workOrder);
+          return this._printPages || [];
         },
 
         // 供应商收货监控：从 arrivalLog 转换的监控列表
@@ -5119,6 +5113,13 @@
             // 普通工单或工单组
             const workOrder = group.workOrder || (group.workOrders && group.workOrders[0]) || group;
             this._selectedWorkOrder = workOrder;
+          }
+          
+          // 计算并缓存打印页面数据，避免打印时重复计算
+          if (this._selectedWorkOrder) {
+            this._printPages = this.generatePrintPages(this._selectedWorkOrder);
+          } else {
+            this._printPages = [];
           }
         },
 
@@ -6828,7 +6829,6 @@
         openArrivalModal() {
           this.newArrival = {
             日期: '',
-            时间: '',
             供应商名称: '',
             实物数量: '',
             单位: '托',
@@ -6847,10 +6847,16 @@
 
         // 保存到货登记
         saveArrival() {
-          if (!this.newArrival.日期 || !this.newArrival.时间 || !this.newArrival.供应商名称 || !this.newArrival.实物数量) {
-            alert('请填写必填项（日期、时间、供应商名称、实物数量）');
+          if (!this.newArrival.日期 || !this.newArrival.供应商名称 || !this.newArrival.实物数量) {
+            alert('请填写必填项（日期、供应商名称、实物数量）');
             return;
           }
+
+          // 自动获取当前系统时间（HH:mm格式）
+          const now = new Date();
+          const hours = String(now.getHours()).padStart(2, '0');
+          const minutes = String(now.getMinutes()).padStart(2, '0');
+          const currentTime = `${hours}:${minutes}`;
 
           // 保存供应商名称到历史记录
           const supplierName = this.newArrival.供应商名称.trim();
@@ -6865,6 +6871,7 @@
 
           const arrival = {
             ...this.newArrival,
+            时间: currentTime, // 使用自动获取的当前时间
             finish_time: ''
           };
 
@@ -6907,10 +6914,32 @@
           }
 
           const item = this.arrivalLog[this.currentArrivalFeedbackIndex];
+          const oldStatus = item.status || '待收货';
+          const oldActualQty = item.actual_qty;
+          
           item.actual_qty = Number(this.arrivalFeedback.actual_qty);
           item.feedback_remark = this.arrivalFeedback.feedback_remark || '';
           item.status = '已完成';
           item.finish_time = new Date().toLocaleString('zh-CN');
+
+          // 自动追加备注记录
+          const now = new Date();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const day = String(now.getDate()).padStart(2, '0');
+          const hours = String(now.getHours()).padStart(2, '0');
+          const minutes = String(now.getMinutes()).padStart(2, '0');
+          const timeStr = `${month}-${day} ${hours}:${minutes}`;
+          
+          const unit = item.单位 || '件';
+          const statusSuffix = (oldStatus !== '已完成') ? ' (完)' : '';
+          const newNote = `[${timeStr}] 收货: ${item.actual_qty} ${unit}${statusSuffix}`;
+          
+          // 保留原有备注，新记录换行追加
+          if (item.备注 && item.备注.trim()) {
+            item.备注 = item.备注 + '\n' + newNote;
+          } else {
+            item.备注 = newNote;
+          }
 
           try {
             localStorage.setItem('arrivalLogData', JSON.stringify(this.arrivalLog));
