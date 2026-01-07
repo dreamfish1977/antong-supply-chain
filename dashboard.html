@@ -1363,7 +1363,10 @@
                       :style="getBatchPrintPageStyle(page, pageIdx)"
                     >
                       <!-- 统一头部：主标题（特大号，居中） -->
-                      <h1 class="text-4xl font-bold text-center text-gray-900 mb-6">{{ page.title }}</h1>
+                      <h1 class="text-4xl font-bold text-center text-gray-900 mb-4">{{ page.title }}</h1>
+                      
+                      <!-- 副标题：工序（仅普通产品显示） -->
+                      <h2 v-if="page.info.op" class="text-2xl font-semibold text-center text-gray-700 mb-6">工序: {{ page.info.op }}</h2>
                       
                       <!-- 统一头部：打印时间 -->
                       <div class="info-row mb-6">
@@ -1453,7 +1456,10 @@
                         :style="pageIdx > 0 ? 'page-break-before: always;' : ''"
                       >
                         <!-- 统一头部：主标题（特大号，居中） -->
-                        <h1 class="text-4xl font-bold text-center text-gray-900 mb-6">{{ page.title }}</h1>
+                        <h1 class="text-4xl font-bold text-center text-gray-900 mb-4">{{ page.title }}</h1>
+                        
+                        <!-- 副标题：工序（仅普通产品显示） -->
+                        <h2 v-if="page.info.op" class="text-2xl font-semibold text-center text-gray-700 mb-6">工序: {{ page.info.op }}</h2>
                         
                         <!-- 统一头部：打印时间 -->
                         <div class="info-row mb-6">
@@ -5485,19 +5491,56 @@
             // 更新 info 的 hasEco 状态
             info.hasEco = hasEco;
             
-            // 后续处理：使用这个完整的 allMaterials 数组进行排序逻辑
-            // 普通产品：1页，标题为"工单配料单"，物料按 locator 排序
-            const sortedMaterials = allMaterials.sort((a, b) => {
-              const locA = String(a.PENDING_LOCATOR || a['PENDING_LOCATOR'] || '').trim();
-              const locB = String(b.PENDING_LOCATOR || b['PENDING_LOCATOR'] || '').trim();
-              return locA.localeCompare(locB, 'zh-CN');
+            // 普通产品：按 OP 分组，每个 OP 生成一页
+            // 1. 按 OP 分组
+            const opGroups = {};
+            allMaterials.forEach(material => {
+              const op = String(material._op || '').trim();
+              if (!opGroups[op]) {
+                opGroups[op] = [];
+              }
+              opGroups[op].push(material);
             });
-
-            return [{
-              title: `工单：[${workOrderNo}]`,
-              info: info,
-              materials: sortedMaterials
-            }];
+            
+            // 2. 获取所有 OP 并排序（按数字大小升序）
+            const opKeys = Object.keys(opGroups).sort((a, b) => {
+              // 尝试将 OP 转换为数字进行比较
+              const numA = parseInt(a, 10);
+              const numB = parseInt(b, 10);
+              if (!isNaN(numA) && !isNaN(numB)) {
+                return numA - numB;
+              }
+              // 如果无法转换为数字，按字符串比较
+              return a.localeCompare(b, 'zh-CN');
+            });
+            
+            // 3. 为每个 OP 组生成一个页面
+            return opKeys.map(op => {
+              // 组内物料按 locator 排序
+              const groupMaterials = opGroups[op].sort((a, b) => {
+                const locA = String(a.PENDING_LOCATOR || a['PENDING_LOCATOR'] || '').trim();
+                const locB = String(b.PENDING_LOCATOR || b['PENDING_LOCATOR'] || '').trim();
+                return locA.localeCompare(locB, 'zh-CN');
+              });
+              
+              // 检查该 OP 组是否有 ECO
+              let groupHasEco = false;
+              groupMaterials.forEach(material => {
+                if (material.ecoInfo && material.ecoInfo.ecoNo) {
+                  groupHasEco = true;
+                }
+              });
+              
+              return {
+                title: `工单：[${workOrderNo}]`,
+                info: {
+                  ...info,
+                  hasEco: groupHasEco,
+                  op: op  // 添加 OP 信息用于副标题显示
+                },
+                materials: groupMaterials
+              };
+            });
           }
         },
 
@@ -7818,9 +7861,9 @@
             '编号': item.report_id || '',
             '日期': item.date || '',
             '供应商': item.supplier || '',
+            '行号': item.line_no || '',
             '物料': item.material || '',
             '数量': item.qty || 0,
-            '行号': item.line_no || '',
             '异常分类': item.category || '',
             '描述': item.description || '',
             '保税': item.is_bonded ? '是' : '否',
