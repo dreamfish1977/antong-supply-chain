@@ -1273,7 +1273,7 @@
                               class="text-xs mt-1"
                               :class="(group.matchedBomCount || 0) === 0 ? 'text-red-500 font-semibold' : 'text-gray-500'"
                             >
-                              计划: {{ group.workOrders.length || group.items.length || 0 }} OP | 物料: {{ group.matchedBomCount || 0 }} 条
+                              匹配: {{ group.matchedBomCount || 0 }} 条
                             </div>
                           </div>
                         </div>
@@ -1294,7 +1294,7 @@
                               class="text-xs mt-1"
                               :class="(group.matchedBomCount || 0) === 0 ? 'text-red-500 font-semibold' : 'text-gray-500'"
                             >
-                              计划: {{ group.workOrders.length || group.items.length || 0 }} OP | 物料: {{ group.matchedBomCount || 0 }} 条
+                              匹配: {{ group.matchedBomCount || 0 }} 条
                             </div>
                           </div>
                         </div>
@@ -1315,21 +1315,28 @@
                               class="text-xs mt-1"
                               :class="(group.matchedBomCount || 0) === 0 ? 'text-red-500 font-semibold' : 'text-gray-500'"
                             >
-                              计划: {{ group.workOrders.length || group.items.length || 0 }} OP | 物料: {{ group.matchedBomCount || 0 }} 条
+                              匹配: {{ group.matchedBomCount || 0 }} 条
                             </div>
                           </div>
                         </div>
                       </template>
                     </div>
                   </div>
-                  <!-- 批量打印按钮 -->
-                  <div class="p-4 border-t border-gray-200">
+                  <!-- 批量打印和导出按钮 -->
+                  <div class="p-4 border-t border-gray-200 space-y-2">
                     <button
                       @click="generateBatchPrint"
                       :disabled="groupedWorkOrderList.length === 0"
                       class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold transition"
                     >
                       🖨️ 批量打印筛选结果 ({{ groupedWorkOrderList.length }})
+                    </button>
+                    <button
+                      @click="exportToExcel"
+                      :disabled="groupedWorkOrderList.length === 0"
+                      class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold transition"
+                    >
+                      📥 导出筛选结果 ({{ groupedWorkOrderList.length }})
                     </button>
                   </div>
                 </div>
@@ -1358,14 +1365,12 @@
                       <!-- 统一头部：主标题（特大号，居中） -->
                       <h1 class="text-4xl font-bold text-center text-gray-900 mb-6">{{ page.title }}</h1>
                       
-                      <!-- 统一头部：工单信息（次要信息，不包含工单号和OP） -->
+                      <!-- 统一头部：打印时间 -->
                       <div class="info-row mb-6">
                         <div class="space-y-1 text-sm text-gray-700">
-                          <div v-if="page.info.description"><span class="font-semibold">产品：</span>{{ page.info.description }}</div>
-                          <div v-if="page.info.station"><span class="font-semibold">台套：</span>{{ page.info.station }}</div>
-                            <div><span class="font-semibold">打印时间：</span>{{ printTime || '--' }}</div>
-                          </div>
+                          <div><span class="font-semibold">打印时间：</span>{{ printTime || '--' }}</div>
                         </div>
+                      </div>
                       
                         <!-- ECO 警示语 -->
                       <div v-if="page.info.hasEco" class="mb-4 p-3 bg-red-50 border-l-4 border-red-500 rounded">
@@ -1380,19 +1385,20 @@
                               <thead>
                                 <tr class="bg-gray-100">
                                   <th class="border border-gray-300 px-3 py-2 text-left font-semibold">序号</th>
-                            <th class="border border-gray-300 px-3 py-2 text-left font-semibold">工单号</th>
-                            <th class="border border-gray-300 px-3 py-2 text-left font-semibold">工序(OP)</th>
+                                  <th class="border border-gray-300 px-3 py-2 text-left font-semibold">产品</th>
+                                  <th class="border border-gray-300 px-3 py-2 text-left font-semibold">台套</th>
+                                  <th class="border border-gray-300 px-3 py-2 text-left font-semibold">工序(OP)</th>
                                   <th class="border border-gray-300 px-3 py-2 text-left font-semibold">物料号</th>
                                   <th class="border border-gray-300 px-3 py-2 text-left font-semibold">库位</th>
                                   <th class="border border-gray-300 px-3 py-2 text-left font-semibold">数量</th>
-                            <th class="border border-gray-300 px-3 py-2 text-left font-semibold">器具</th>
+                                  <th class="border border-gray-300 px-3 py-2 text-left font-semibold">器具</th>
                                   <th class="border border-gray-300 px-3 py-2 text-left font-semibold">ECO变更</th>
                                   <th class="border border-gray-300 px-3 py-2 text-left font-semibold">备注</th>
                                 </tr>
                               </thead>
                               <tbody>
                           <tr v-if="!page.materials || page.materials.length === 0">
-                            <td colspan="9" class="border border-gray-300 px-3 py-4 text-center text-gray-500">
+                            <td colspan="10" class="border border-gray-300 px-3 py-4 text-center text-gray-500">
                               暂无物料明细
                             </td>
                           </tr>
@@ -1403,8 +1409,9 @@
                                   :class="material.ecoInfo && material.ecoInfo.ecoNo ? 'bg-red-50' : ''"
                                 >
                                   <td class="border border-gray-300 px-3 py-2">{{ idx + 1 }}</td>
-                            <td class="border border-gray-300 px-3 py-2">{{ material._work_order || '--' }}</td>
-                            <td class="border border-gray-300 px-3 py-2">{{ material._op || '--' }}</td>
+                                  <td class="border border-gray-300 px-3 py-2">{{ material._description || '--' }}</td>
+                                  <td class="border border-gray-300 px-3 py-2">{{ (material._seq_no || '').toString().slice(-4) || '--' }}</td>
+                                  <td class="border border-gray-300 px-3 py-2">{{ material._op || '--' }}</td>
                                   <td class="border border-gray-300 px-3 py-2 font-semibold">{{ material.Component || material['Component'] || '--' }}</td>
                                   <td class="border border-gray-300 px-3 py-2">{{ material.PENDING_LOCATOR || material['PENDING_LOCATOR'] || '--' }}</td>
                                   <td class="border border-gray-300 px-3 py-2">{{ material.Required || material['Required'] || '--' }}</td>
@@ -1448,11 +1455,9 @@
                         <!-- 统一头部：主标题（特大号，居中） -->
                         <h1 class="text-4xl font-bold text-center text-gray-900 mb-6">{{ page.title }}</h1>
                         
-                        <!-- 统一头部：工单信息（次要信息，不包含工单号和OP） -->
+                        <!-- 统一头部：打印时间 -->
                         <div class="info-row mb-6">
                           <div class="space-y-1 text-sm text-gray-700">
-                            <div v-if="page.info.description"><span class="font-semibold">产品：</span>{{ page.info.description }}</div>
-                            <div v-if="page.info.station"><span class="font-semibold">台套：</span>{{ page.info.station }}</div>
                             <div><span class="font-semibold">打印时间：</span>{{ printTime || '--' }}</div>
                           </div>
                         </div>
@@ -1470,7 +1475,8 @@
                           <thead>
                             <tr class="bg-gray-100">
                               <th class="border border-gray-300 px-3 py-2 text-left font-semibold">序号</th>
-                              <th class="border border-gray-300 px-3 py-2 text-left font-semibold">工单号</th>
+                              <th class="border border-gray-300 px-3 py-2 text-left font-semibold">产品</th>
+                              <th class="border border-gray-300 px-3 py-2 text-left font-semibold">台套</th>
                               <th class="border border-gray-300 px-3 py-2 text-left font-semibold">工序(OP)</th>
                               <th class="border border-gray-300 px-3 py-2 text-left font-semibold">物料号</th>
                               <th class="border border-gray-300 px-3 py-2 text-left font-semibold">库位</th>
@@ -1482,7 +1488,7 @@
                           </thead>
                           <tbody>
                             <tr v-if="!page.materials || page.materials.length === 0">
-                              <td colspan="9" class="border border-gray-300 px-3 py-4 text-center text-gray-500">
+                              <td colspan="10" class="border border-gray-300 px-3 py-4 text-center text-gray-500">
                                 暂无物料明细
                               </td>
                             </tr>
@@ -1493,7 +1499,8 @@
                               :class="material.ecoInfo && material.ecoInfo.ecoNo ? 'bg-red-50' : ''"
                             >
                               <td class="border border-gray-300 px-3 py-2">{{ idx + 1 }}</td>
-                              <td class="border border-gray-300 px-3 py-2">{{ material._work_order || '--' }}</td>
+                              <td class="border border-gray-300 px-3 py-2">{{ material._description || '--' }}</td>
+                              <td class="border border-gray-300 px-3 py-2">{{ (material._seq_no || '').toString().slice(-4) || '--' }}</td>
                               <td class="border border-gray-300 px-3 py-2">{{ material._op || '--' }}</td>
                               <td class="border border-gray-300 px-3 py-2 font-semibold">{{ material.Component || material['Component'] || '--' }}</td>
                               <td class="border border-gray-300 px-3 py-2">{{ material.PENDING_LOCATOR || material['PENDING_LOCATOR'] || '--' }}</td>
@@ -3130,7 +3137,8 @@
                   displayDesc: `${workOrders.length} 个工单`,
                   matchedBomCount: matchedBomCount // 实际匹配到的物料总行数
                 };
-              });
+              })
+              .filter(group => (group.matchedBomCount || 0) > 0);
           }
           
           // 如果是"SA14"筛选模式，按器具分组
@@ -3194,7 +3202,8 @@
                 displayDesc: '1条',
                 matchedBomCount: matchedBomCount // 实际匹配到的物料总行数
               };
-            });
+            })
+            .filter(group => (group.matchedBomCount || 0) > 0);
           }
           
           // 如果是"其他"筛选模式，按工单号分组
@@ -3226,7 +3235,8 @@
                 displayDesc: workOrders[0].description || workOrders[0]['产品描述'] || '',
                 matchedBomCount: matchedBomCount // 实际匹配到的物料总行数
               };
-            });
+            })
+            .filter(group => (group.matchedBomCount || 0) > 0);
           }
 
           // "全部项目"模式：执行混合分组策略
@@ -3313,7 +3323,8 @@
                 displayDesc: `${workOrders.length} 个工单`,
                 matchedBomCount: matchedBomCount // 实际匹配到的物料总行数
               };
-            });
+            })
+            .filter(group => (group.matchedBomCount || 0) > 0);
 
           // 生成SA14器具组（按tool_type分组）
           const sa14ToolGroups = {};
@@ -3357,7 +3368,8 @@
               displayDesc: '1条',
               matchedBomCount: matchedBomCount // 实际匹配到的物料总行数
             };
-          });
+          })
+          .filter(group => (group.matchedBomCount || 0) > 0);
 
           // 生成其他工单组（按工单号去重并分组）
           // 【统计逻辑说明】
@@ -3387,7 +3399,8 @@
               displayDesc: workOrders[0].description || workOrders[0]['产品描述'] || '',
               matchedBomCount: matchedBomCount // 实际匹配到的物料总行数
             };
-          });
+          })
+          .filter(group => (group.matchedBomCount || 0) > 0);
 
           // 第三步：合并（Pitch组置顶，然后是SA14器具组，最后是其他工单组）
           return [...pitchTimeGroups, ...sa14Groups, ...workOrderGroups];
@@ -5066,8 +5079,38 @@
             
             // 将合并后的工单设置为选中工单（使用内部变量）
             this._selectedWorkOrder = mergedWorkOrder;
+          } else if (group && group.type === 'tool_group') {
+            // 如果是器具组（SA14按器具分组），构造器具组对象
+            let hasEco = false;
+            if (group.materials && group.materials.length > 0) {
+              group.materials.forEach(material => {
+                if (material.ecoInfo && material.ecoInfo.ecoNo) {
+                  hasEco = true;
+                }
+              });
+            }
+            if (group.workOrders && group.workOrders.length > 0) {
+              group.workOrders.forEach(wo => {
+                if (wo.hasEco) {
+                  hasEco = true;
+                }
+              });
+            }
+            
+            const toolGroupWorkOrder = {
+              work_order: group.workOrders && group.workOrders[0] ? (group.workOrders[0].work_order || group.workOrders[0]['工单号'] || '') : '',
+              description: group.workOrders && group.workOrders[0] ? (group.workOrders[0].description || group.workOrders[0]['产品描述'] || '') : '',
+              op: group.workOrders && group.workOrders[0] ? (group.workOrders[0].op || group.workOrders[0]['OP'] || '') : '',
+              materials: group.materials || [],
+              hasEco: hasEco,
+              _isToolGroup: true,
+              _toolType: group.toolType || '未分类',
+              _allWorkOrders: group.workOrders || []
+            };
+            
+            this._selectedWorkOrder = toolGroupWorkOrder;
           } else {
-            // 普通工单或器具组
+            // 普通工单或工单组
             const workOrder = group.workOrder || (group.workOrders && group.workOrders[0]) || group;
             this._selectedWorkOrder = workOrder;
           }
@@ -5129,7 +5172,10 @@
                   allMergedMaterials.push({
                     ...material,
                     _work_order: wo.work_order || wo['工单号'] || '',
-                    _op: wo.op || wo['OP'] || ''
+                    _op: wo.op || wo['OP'] || '',
+                    // 添加产品描述和台套信息
+                    _description: wo.description || wo['产品描述'] || '',
+                    _seq_no: wo.seq_no || wo['加工序列号'] || ''
                   });
                 });
                 
@@ -5266,7 +5312,10 @@
                   allMergedMaterials.push({
                     ...material,
                     _work_order: wo.work_order || wo['工单号'] || '',
-                    _op: wo.op || wo['OP'] || ''
+                    _op: wo.op || wo['OP'] || '',
+                    // 添加产品描述和台套信息
+                    _description: wo.description || wo['产品描述'] || '',
+                    _seq_no: wo.seq_no || wo['加工序列号'] || ''
                   });
                 });
               }
@@ -5312,7 +5361,10 @@
             const materialsWithWorkOrder = materials.map(material => ({
               ...material,
               _work_order: workOrder.work_order || workOrder['工单号'] || '',
-              _op: workOrder.op || workOrder['OP'] || ''
+              _op: workOrder.op || workOrder['OP'] || '',
+              // 添加产品描述和台套信息
+              _description: workOrder.description || workOrder['产品描述'] || '',
+              _seq_no: workOrder.seq_no || workOrder['加工序列号'] || ''
             }));
             
             // SA14 产品：N页（按 tool_type 分组），每页标题为 tool_type，物料按 locator 排序
@@ -5340,27 +5392,109 @@
             });
           } else {
             // 普通产品：需要物料数据
-            if (!workOrder.materials || workOrder.materials.length === 0) {
+            // Step A: 获取该工单号
+            const workOrderNo = String(workOrder.work_order || workOrder['工单号'] || '').trim();
+            if (!workOrderNo) {
               return [];
             }
-            const materials = [...workOrder.materials];
             
-            // 为每个物料添加所属工单号和OP信息
-            const materialsWithWorkOrder = materials.map(material => ({
-              ...material,
-              _work_order: workOrder.work_order || workOrder['工单号'] || '',
-              _op: workOrder.op || workOrder['OP'] || ''
-            }));
+            // Step B: 在 productionPlanData 中查找所有属于该工单号的记录（获取所有 OP）
+            const allOpsForWorkOrder = (this.productionPlanData || []).filter(plan => {
+              const planWorkOrder = String(plan.work_order || plan['工单号'] || '').trim();
+              return planWorkOrder === workOrderNo;
+            });
             
+            // Step C: 遍历这所有 OP，分别去 bomData 中查找匹配的物料
+            const allMaterials = [];
+            let hasEco = false;
+            
+            allOpsForWorkOrder.forEach(planOp => {
+              const planOpCode = String(planOp.op || planOp['OP'] || '').trim();
+              
+              // 从 bomData 中查找匹配的物料（工单号 + OP 双重匹配）
+              (this.bomData || []).forEach(bom => {
+                // 过滤 AW：如果 tool_type === 'AW'（不区分大小写），跳过该物料
+                const toolType = String(bom.tool_type || bom['tool_type'] || '').trim();
+                if (toolType.toUpperCase() === 'AW') {
+                  return; // 跳过 AW 物料
+                }
+                
+                const bomJob = String(bom.Job || '').trim();
+                const bomOP = String(bom.OP || '').trim();
+                
+                // 双重匹配：工单号和OP都必须完全一致
+                if (bomJob === workOrderNo && bomOP === planOpCode) {
+                  // 匹配成功，添加物料
+                  const material = {
+                    ...bom,
+                    _work_order: workOrderNo,
+                    _op: planOpCode,
+                    // 添加产品描述和台套信息（从 planOp 中获取）
+                    _description: planOp.description || planOp['产品描述'] || '',
+                    _seq_no: planOp.seq_no || planOp['加工序列号'] || ''
+                  };
+                  
+                  // 将 Plan 的 arrival_time_formatted 赋给 BOM 物料（如果还没有）
+                  if (!material.arrival_time_formatted && planOp.arrival_time_formatted) {
+                    material.arrival_time_formatted = planOp.arrival_time_formatted;
+                    material['到达时间格式化'] = planOp.arrival_time_formatted;
+                  }
+                  if (!material.arrival_time && planOp.arrival_time) {
+                    material.arrival_time = planOp.arrival_time;
+                    material['到达时间'] = planOp.arrival_time;
+                  }
+                  
+                  allMaterials.push(material);
+                  
+                  // 检查是否有ECO
+                  const component = String(material.Component || '').trim();
+                  const seqNo = parseInt(planOp.seq_no || planOp['加工序列号'] || '0', 10) || 0;
+                  
+                  // 查找匹配的 ECO
+                  const matchedEco = (this.ecoList || []).find(eco => {
+                    if (eco.op !== planOpCode) return false;
+                    if (!eco.materials || eco.materials.length === 0) return false;
+                    
+                    const hasMaterial = eco.materials.some(mat => {
+                      const matStr = typeof mat === 'string' ? mat : String(mat.material || '');
+                      return matStr === component;
+                    });
+                    
+                    if (!hasMaterial) return false;
+                    
+                    const startSet = parseInt(eco.start_set || '0', 10) || 0;
+                    return seqNo >= startSet;
+                  });
+                  
+                  if (matchedEco) {
+                    material.ecoInfo = {
+                      ecoNo: matchedEco.eco_no,
+                      changeDetails: matchedEco.change_details || ''
+                    };
+                    hasEco = true;
+                  }
+                }
+              });
+            });
+            
+            // Step D: 将所有匹配到的物料合并到一个大数组 allMaterials 中
+            if (allMaterials.length === 0) {
+              return [];
+            }
+            
+            // 更新 info 的 hasEco 状态
+            info.hasEco = hasEco;
+            
+            // 后续处理：使用这个完整的 allMaterials 数组进行排序逻辑
             // 普通产品：1页，标题为"工单配料单"，物料按 locator 排序
-            const sortedMaterials = materialsWithWorkOrder.sort((a, b) => {
+            const sortedMaterials = allMaterials.sort((a, b) => {
               const locA = String(a.PENDING_LOCATOR || a['PENDING_LOCATOR'] || '').trim();
               const locB = String(b.PENDING_LOCATOR || b['PENDING_LOCATOR'] || '').trim();
               return locA.localeCompare(locB, 'zh-CN');
             });
 
             return [{
-              title: '工单配料单',
+              title: `工单：[${workOrderNo}]`,
               info: info,
               materials: sortedMaterials
             }];
@@ -5375,6 +5509,140 @@
         // 批量打印
         printBatchWorkOrders() {
           window.print();
+        },
+
+        // 导出筛选结果到Excel
+        exportToExcel() {
+          const groupedList = this.groupedWorkOrderList || [];
+          
+          if (groupedList.length === 0) {
+            alert('没有可导出的数据');
+            return;
+          }
+
+          try {
+            // 收集所有物料数据
+            const allExportData = [];
+            let rowIndex = 1;
+
+            groupedList.forEach((group, groupIndex) => {
+              let workOrder = null;
+              
+              // 根据分组类型获取工单对象
+              if (group.type === 'time_group' && group.workOrders && group.workOrders.length > 0) {
+                // Pitch时间组
+                workOrder = {
+                  type: 'time_group',
+                  timeKey: group.timeKey,
+                  workOrders: group.workOrders
+                };
+              } else if (group.type === 'tool_group') {
+                // SA14器具组
+                workOrder = {
+                  _isToolGroup: true,
+                  _toolType: group.toolType,
+                  materials: group.materials || [],
+                  workOrders: group.workOrders || []
+                };
+              } else if (group.type === 'work_order_group' && group.workOrder) {
+                // 工单组
+                workOrder = group.workOrder;
+              }
+
+              if (!workOrder) return;
+
+              // 生成打印页面以获取物料数据
+              const pages = this.generatePrintPages(workOrder);
+              
+              pages.forEach((page, pageIdx) => {
+                if (page.materials && page.materials.length > 0) {
+                  page.materials.forEach((material, matIdx) => {
+                    // 获取产品描述和台套（后4位）
+                    const description = material._description || '';
+                    const seqNo = material._seq_no || '';
+                    const seqNoLast4 = seqNo.toString().slice(-4) || '--';
+                    
+                    // 构建导出行数据
+                    const rowData = {
+                      '序号': rowIndex++,
+                      '产品': description || '--',
+                      '台套': seqNoLast4,
+                      '工序(OP)': material._op || '--',
+                      '物料号': material.Component || material['Component'] || '--',
+                      '库位': material.PENDING_LOCATOR || material['PENDING_LOCATOR'] || '--',
+                      '数量': material.Required || material['Required'] || '--',
+                      '器具': material.tool_type || material['tool_type'] || '--',
+                      'ECO变更': material.ecoInfo && material.ecoInfo.ecoNo ? `ECO-${material.ecoInfo.ecoNo}` : '--',
+                      '备注': material.remark || material['备注'] || '--'
+                    };
+                    
+                    allExportData.push(rowData);
+                  });
+                }
+              });
+            });
+
+            if (allExportData.length === 0) {
+              alert('没有可导出的物料数据');
+              return;
+            }
+
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            
+            // 创建工作表数据
+            const wsData = [
+              // 表头
+              ['序号', '产品', '台套', '工序(OP)', '物料号', '库位', '数量', '器具', 'ECO变更', '备注'],
+              // 数据行
+              ...allExportData.map(row => [
+                row['序号'],
+                row['产品'],
+                row['台套'],
+                row['工序(OP)'],
+                row['物料号'],
+                row['库位'],
+                row['数量'],
+                row['器具'],
+                row['ECO变更'],
+                row['备注']
+              ])
+            ];
+
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // 设置列宽
+            ws['!cols'] = [
+              { wch: 8 },   // 序号
+              { wch: 30 },  // 产品
+              { wch: 10 },  // 台套
+              { wch: 12 },  // 工序(OP)
+              { wch: 25 },  // 物料号
+              { wch: 15 },  // 库位
+              { wch: 10 },  // 数量
+              { wch: 20 },  // 器具
+              { wch: 15 },  // ECO变更
+              { wch: 20 }   // 备注
+            ];
+
+            // 添加工作表到工作簿
+            XLSX.utils.book_append_sheet(wb, ws, '工单配料明细');
+
+            // 生成文件名（包含日期时间）
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+            const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
+            const fileName = `工单配料明细_${dateStr}_${timeStr}.xlsx`;
+
+            // 导出文件
+            XLSX.writeFile(wb, fileName);
+            
+            alert(`成功导出 ${allExportData.length} 条物料明细！`);
+          } catch (error) {
+            console.error('导出失败:', error);
+            alert('导出失败，请重试：' + error.message);
+          }
         },
 
         // 生成批量打印页面
